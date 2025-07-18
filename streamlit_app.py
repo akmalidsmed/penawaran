@@ -63,7 +63,8 @@ for i in range(jumlah_item):
 # Diskon & PIC
 st.subheader("\U0001F4B2 Diskon dan PIC")
 diskon = st.number_input("Diskon (%)", value=0, format="%d")
-ketersediaan = st.text_input("Ketersediaan Barang")
+ketersediaan_options = ["Jangan tampilkan", "Ready stock", "Ready jika persediaan masih ada", "Indent"]
+ketersediaan = st.selectbox("Ketersediaan Barang", ketersediaan_options)
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
 
@@ -148,7 +149,8 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph("Masa berlaku: 2 minggu")
 
     doc.add_paragraph(f"Diskon: {round(diskon)}%")
-    doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
+    if ketersediaan != "Jangan tampilkan":
+        doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
     doc.add_paragraph(f"PIC: {pic}")
     doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
 
