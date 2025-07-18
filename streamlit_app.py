@@ -39,18 +39,19 @@ jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_va
 
 items = []
 for i in range(jumlah_item):
-    st.markdown(f"### Item {i+1}")
-    st.markdown("---")
+    if jumlah_item > 1:
+        st.markdown(f"### Item {i+1}")
+        st.markdown("---")
     
     col1, col2 = st.columns(2)
     with col1:
-        qty = st.text_input(f"Qty Item {i+1}", key=f"qty_{i}")
+        qty = st.text_input("Qty", key=f"qty_{i}")
     with col2:
-        uom = st.text_input(f"UOM Item {i+1}", key=f"uom_{i}")
+        uom = st.text_input("UOM", key=f"uom_{i}")
     
-    partnumber = st.text_input(f"Part Number Item {i+1}", key=f"part_{i}")
-    description = st.text_input(f"Description Item {i+1}", key=f"desc_{i}")
-    priceperitem = st.number_input(f"Harga per item {i+1}", value=0, key=f"harga_{i}", format="%d")
+    partnumber = st.text_input("Part Number", key=f"part_{i}")
+    description = st.text_input("Description", key=f"desc_{i}")
+    priceperitem = st.number_input("Harga per item", value=0, key=f"harga_{i}", format="%d")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
@@ -70,8 +71,16 @@ for i in range(jumlah_item):
 st.markdown("---")
 st.markdown("<h3 style='text-align: center;'>Keterangan lain-lain</h3>", unsafe_allow_html=True)
 
-# Input diskon
-diskon = st.number_input("Diskon (%)", value=0, format="%d")
+# Input diskon dengan 3 pilihan
+jenis_diskon = st.radio("Jenis Diskon", 
+                        ["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"], 
+                        index=0)
+
+diskon_value = 0
+if jenis_diskon == "Diskon persentase (%)":
+    diskon_value = st.number_input("Besar diskon (%)", min_value=0, max_value=100, value=0, format="%d")
+elif jenis_diskon == "Diskon nominal (Rp)":
+    diskon_value = st.number_input("Besar diskon (Rp)", min_value=0, value=0, format="%d")
 
 # Input ketersediaan barang
 opsi_ketersediaan = [
@@ -129,7 +138,13 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1  # Center alignment
 
-    price_diskon = subtotal1 * (diskon / 100)
+    # Hitung diskon
+    price_diskon = 0
+    if jenis_diskon == "Diskon persentase (%)":
+        price_diskon = subtotal1 * (diskon_value / 100)
+    elif jenis_diskon == "Diskon nominal (Rp)":
+        price_diskon = diskon_value
+    
     subtotal2 = subtotal1 - price_diskon
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
@@ -140,9 +155,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     for cell in row_subtotal1:
         cell.paragraphs[0].alignment = 1
 
-    if diskon > 0:
+    if price_diskon > 0:
         row_diskon = table.add_row().cells
-        row_diskon[3].text = f"Diskon {round(diskon)}%"
+        if jenis_diskon == "Diskon persentase (%)":
+            row_diskon[3].text = f"Diskon {round(diskon_value)}%"
+        else:
+            row_diskon[3].text = "Diskon (Rp)"
         row_diskon[4].text = f"-{round(price_diskon)}"
         for cell in row_diskon:
             cell.paragraphs[0].alignment = 1
@@ -170,9 +188,15 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
 
-    doc.add_paragraph(f"Diskon: {round(diskon)}%")
+    if price_diskon > 0:
+        if jenis_diskon == "Diskon persentase (%)":
+            doc.add_paragraph(f"Diskon: {round(diskon_value)}%")
+        else:
+            doc.add_paragraph(f"Diskon: Rp {round(price_diskon)}")
+    
     if ketersediaan != "Jangan tampilkan":
         doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
+    
     doc.add_paragraph(f"PIC: {pic}")
     doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
 
