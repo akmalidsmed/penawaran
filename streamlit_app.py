@@ -31,7 +31,7 @@ nama_unit = st.text_input("Nama Unit")
 # Data Item
 st.subheader("\U0001F9FE Daftar Item Penawaran")
 items = []
-jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1)
+jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1, format="%d")
 
 for i in range(jumlah_item):
     if jumlah_item > 1:
@@ -62,7 +62,7 @@ for i in range(jumlah_item):
 
 # Diskon & PIC
 st.subheader("\U0001F4B2 Diskon dan PIC")
-diskon = st.number_input("Diskon (%)", value=0.0, format="%d")
+diskon = st.number_input("Diskon (%)", value=0, format="%d")
 ketersediaan = st.text_input("Ketersediaan Barang")
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
