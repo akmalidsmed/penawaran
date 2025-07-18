@@ -99,35 +99,48 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         row_cells[0].text = f"{item['qty']}{item['uom']}"
         row_cells[1].text = item['partnumber']
         row_cells[2].text = item['description']
-        row_cells[3].text = f"{item['priceperitem']:.2f}"
-        row_cells[4].text = f"{item['price']:.2f}"
+        row_cells[3].text = f"{round(item['priceperitem'])}"
+        row_cells[4].text = f"{round(item['price'])}"
         subtotal1 += item['price']
+
+        for cell in row_cells:
+            cell.paragraphs[0].alignment = 1  # Center alignment
 
     price_diskon = subtotal1 * (diskon / 100)
     subtotal2 = subtotal1 - price_diskon
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
 
-    row_subtotal1 = table.add_row().cells
+        row_subtotal1 = table.add_row().cells
     row_subtotal1[3].text = "Sub Total I"
-    row_subtotal1[4].text = f"{subtotal1:.2f}"
+    row_subtotal1[4].text = f"{round(subtotal1)}"
+    for cell in row_subtotal1:
+        cell.paragraphs[0].alignment = 1
 
     if diskon > 0:
-        row_diskon = table.add_row().cells
-        row_diskon[3].text = f"Diskon {diskon:.2f}%"
-        row_diskon[4].text = f"-{price_diskon:.2f}"
+                row_diskon = table.add_row().cells
+        row_diskon[3].text = f"Diskon {round(diskon)}%"
+        row_diskon[4].text = f"-{round(price_diskon)}"
+        for cell in row_diskon:
+            cell.paragraphs[0].alignment = 1
 
-    row_subtotal2 = table.add_row().cells
+        row_subtotal2 = table.add_row().cells
     row_subtotal2[3].text = "Sub Total II"
-    row_subtotal2[4].text = f"{subtotal2:.2f}"
+    row_subtotal2[4].text = f"{round(subtotal2)}"
+    for cell in row_subtotal2:
+        cell.paragraphs[0].alignment = 1
 
-    row_ppn = table.add_row().cells
+        row_ppn = table.add_row().cells
     row_ppn[3].text = "PPN 11%"
-    row_ppn[4].text = f"{ppn:.2f}"
+    row_ppn[4].text = f"{round(ppn)}"
+    for cell in row_ppn:
+        cell.paragraphs[0].alignment = 1
 
-    row_total = table.add_row().cells
+        row_total = table.add_row().cells
     row_total[3].text = "TOTAL"
-    row_total[4].text = f"{total:.2f}"
+    row_total[4].text = f"{round(total)}"
+    for cell in row_total:
+        cell.paragraphs[0].alignment = 1
 
     doc.add_paragraph("\nSyarat dan ketentuan:")
     doc.add_paragraph("Harga: Sudah termasuk PPN 11%")
