@@ -5,17 +5,24 @@ from docx import Document
 
 st.title("\U0001F4C4 Generator Penawaran Otomatis")
 
+# Data PIC
+pic_options = {
+    "Alamas Ramadhan": "0857 7376 2820",
+    "Rully Candra": "0813 1515 4142",
+    "Muhammad Lukmansyah": "0821 2291 1020",
+    "Denny Firmansyah": "0821 1408 0011"
+}
+
 # Input Umum
 nama_customer = st.text_input("Nama Customer")
 alamat = st.text_area("Alamat Customer")
 nomor_penawaran = st.text_input("Nomor Penawaran", "001")
 tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit")
-ketersediaan = st.text_input("Ketersediaan Barang")
-pic = st.text_input("Nama PIC")
-pic_telp = st.text_input("No. Telp PIC")
-
 diskon = st.number_input("Diskon (%)", value=0.0)
+ketersediaan = st.text_input("Ketersediaan Barang")
+pic = st.selectbox("Nama PIC", list(pic_options.keys()))
+pic_telp = pic_options[pic]
 
 # Data Item
 st.subheader("\U0001F9FE Daftar Item Penawaran")
@@ -95,9 +102,9 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph(f"Ketersediaan barang: {ketersediaan}")
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
+    doc.add_paragraph(f"PIC: {pic}\n{pic_telp}")
 
     doc.add_paragraph("\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II – Engineering")
-    doc.add_paragraph(f"PIC: {pic}\n{pic_telp}")
 
     buffer = io.BytesIO()
     doc.save(buffer)
