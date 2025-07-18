@@ -34,22 +34,23 @@ tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 
 st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
-items = []
 jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=10, value=1, format="%d")
 
+items = []
 for i in range(jumlah_item):
-    if jumlah_item > 1:
-        st.markdown(f"### Item {i+1}", key=f"judul{i}")
-        st.markdown("---", key=f"garis{i}")
-
-    qty = st.text_input("Qty", key=f"qty_{i}")
-    uom = st.text_input("UOM", key=f"uom_{i}")
-    partnumber = st.text_input("Part Number", key=f"part_{i}")
-    description = st.text_input("Description", key=f"desc_{i}")
-    priceperitem = st.number_input("Harga per item", value=0, key=f"harga_{i}", format="%d")
+    st.markdown(f"### Item {i+1}")
+    st.markdown("---")
     
-    # Pindahkan diskon dan ketersediaan barang ke sini
-    diskon = st.number_input("Diskon (%)", value=0, key=f"diskon_{i}", format="%d")
+    col1, col2 = st.columns(2)
+    with col1:
+        qty = st.text_input(f"Qty Item {i+1}", key=f"qty_{i}")
+    with col2:
+        uom = st.text_input(f"UOM Item {i+1}", key=f"uom_{i}")
+    
+    partnumber = st.text_input(f"Part Number Item {i+1}", key=f"part_{i}")
+    description = st.text_input(f"Description Item {i+1}", key=f"desc_{i}")
+    priceperitem = st.number_input(f"Harga per item {i+1}", value=0, key=f"harga_{i}", format="%d")
+    diskon = st.number_input(f"Diskon (%) Item {i+1}", value=0, key=f"diskon_{i}", format="%d")
     
     opsi_ketersediaan = [
         "Jangan tampilkan",
@@ -57,7 +58,7 @@ for i in range(jumlah_item):
         "Ready jika persediaan masih ada",
         "Indent"
     ]
-    ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan, key=f"ketersediaan_{i}")
+    ketersediaan = st.selectbox(f"Ketersediaan Barang Item {i+1}", opsi_ketersediaan, key=f"ketersediaan_{i}")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
@@ -84,8 +85,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc = Document()
 
     # Ganti spasi antar paragraf menjadi lebih rapat
-    style = doc.styles['Normal']
-    font = style.font
     for para in doc.paragraphs:
         para.paragraph_format.space_after = 0
 
@@ -166,7 +165,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
 
-    # Tampilkan ketersediaan barang jika ada item dengan ketersediaan yang ditampilkan
     if any(item['ketersediaan'] != "Jangan tampilkan" for item in items):
         ketersediaan_items = [item['ketersediaan'] for item in items if item['ketersediaan'] != "Jangan tampilkan"]
         doc.add_paragraph(f"Ketersediaan Barang: {', '.join(set(ketersediaan_items))}")
