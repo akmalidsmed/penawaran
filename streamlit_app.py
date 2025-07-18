@@ -37,10 +37,9 @@ tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 
 # Data Item
-st.subheader("Item yang ditawarkan")
+st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
 items = []
-jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1, format="%d")
-diskon = st.number_input("Diskon (%)", value=0, key="diskon", format="%d")
+jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=10, value=1, format="%d")
 
 for i in range(jumlah_item):
     if jumlah_item > 1:
@@ -52,6 +51,7 @@ for i in range(jumlah_item):
     partnumber = st.text_input("Part Number", key=f"part_{i}")
     description = st.text_input("Description", key=f"desc_{i}")
     priceperitem = st.number_input("Harga per item", value=0, key=f"harga_{i}", format="%d")
+diskon = st.number_input("Diskon (%)", value=0, key="diskon", format="%d")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
