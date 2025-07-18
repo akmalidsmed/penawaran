@@ -180,7 +180,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     buffer.seek(0)
     preview_doc = Document(buffer)
     preview_text = "
-".join([para.text for para in preview_doc.paragraphs])  # fixed
 ".join([para.text for para in preview_doc.paragraphs])
 
     st.markdown("### Preview Penawaran")
