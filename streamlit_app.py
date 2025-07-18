@@ -34,12 +34,14 @@ items = []
 jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1)
 
 for i in range(jumlah_item):
-    st.markdown(f"**Item {i+1}**")
-    qty = st.text_input(f"Qty {i+1}", key=f"qty{i}")
-    uom = st.text_input(f"UOM {i+1}", key=f"uom{i}")
-    partnumber = st.text_input(f"Part Number {i+1}", key=f"part{i}")
-    description = st.text_input(f"Description {i+1}", key=f"desc{i}")
-    priceperitem = st.number_input(f"Harga per item {i+1}", key=f"harga{i}")
+    if jumlah_item > 1:
+        st.markdown(f"### 🧾 Item {i+1}")
+        st.markdown("---")
+    qty = st.text_input("Qty", key=f"qty{i}")
+    uom = st.text_input("UOM", key=f"uom{i}")
+    partnumber = st.text_input("Part Number", key=f"part{i}")
+    description = st.text_input("Description", key=f"desc{i}")
+    priceperitem = st.number_input("Harga per item", key=f"harga{i}")
 
     if qty and priceperitem:
         try:
