@@ -3,6 +3,14 @@ from datetime import date
 import io
 from docx import Document
 
+# Handle Reset
+if "reset" not in st.session_state:
+    st.session_state.reset = False
+
+if st.session_state.reset:
+    st.session_state.reset = False
+    st.experimental_rerun()
+
 st.title("\U0001F4C4 Generator Penawaran Otomatis")
 
 # Data PIC
@@ -61,11 +69,11 @@ pic_telp = pic_options[pic]
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc = Document()
 
-    doc.add_paragraph("Kepada Yth:")
+    doc.add_paragraph("Kepada Yth")
     doc.add_paragraph(nama_customer)
     doc.add_paragraph(alamat)
 
-    doc.add_paragraph(f"\nHal: Penawaran Harga\nNo: {nomor_penawaran}     \t\t Jakarta, {tanggal.strftime('%d %B %Y')}\n")
+    doc.add_paragraph(f"\nHal: Penawaran Harga\nNo: {nomor_penawaran}/JKT/SRV/AA/25     \t\t Jakarta, {tanggal.strftime('%d %B %Y')}\n")
 
     doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
 
@@ -136,4 +144,4 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 # Tombol Reset di bagian paling bawah
 st.markdown("---")
 if st.button("🔄 Reset Form"):
-    st.experimental_rerun()
+    st.session_state.reset = True
