@@ -3,7 +3,9 @@ from datetime import date
 import io
 from docx import Document
 
-# Fungsi untuk format tanggal Indonesia
+def format_rupiah(angka):
+    return "Rp. {:,.0f},-".format(angka).replace(",", ".")
+
 def format_tanggal_indonesia(tanggal):
     bulan_dict = {
         "January": "Januari", "February": "Februari", "March": "Maret",
@@ -51,7 +53,7 @@ for i in range(jumlah_item):
     
     partnumber = st.text_input("Part Number", key=f"part_{i}")
     description = st.text_input("Description", key=f"desc_{i}")
-    priceperitem = st.number_input("Harga per item", value=0, key=f"harga_{i}", format="%d")
+    priceperitem = st.number_input("Harga per item (Rp)", value=0, key=f"harga_{i}", format="%d")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
@@ -131,8 +133,8 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         row_cells[0].text = f"{item['qty']}{item['uom']}"
         row_cells[1].text = item['partnumber']
         row_cells[2].text = item['description']
-        row_cells[3].text = f"{round(item['priceperitem'])}"
-        row_cells[4].text = f"{round(item['price'])}"
+        row_cells[3].text = format_rupiah(item['priceperitem'])
+        row_cells[4].text = format_rupiah(item['price'])
         subtotal1 += item['price']
 
         for cell in row_cells:
@@ -151,7 +153,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     row_subtotal1 = table.add_row().cells
     row_subtotal1[3].text = "Sub Total I"
-    row_subtotal1[4].text = f"{round(subtotal1)}"
+    row_subtotal1[4].text = format_rupiah(subtotal1)
     for cell in row_subtotal1:
         cell.paragraphs[0].alignment = 1
 
@@ -161,25 +163,25 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
             row_diskon[3].text = f"Diskon {round(diskon_value)}%"
         else:
             row_diskon[3].text = "Diskon (Rp)"
-        row_diskon[4].text = f"-{round(price_diskon)}"
+        row_diskon[4].text = f"-{format_rupiah(price_diskon)}"
         for cell in row_diskon:
             cell.paragraphs[0].alignment = 1
 
     row_subtotal2 = table.add_row().cells
     row_subtotal2[3].text = "Sub Total II"
-    row_subtotal2[4].text = f"{round(subtotal2)}"
+    row_subtotal2[4].text = format_rupiah(subtotal2)
     for cell in row_subtotal2:
         cell.paragraphs[0].alignment = 1
 
     row_ppn = table.add_row().cells
     row_ppn[3].text = "PPN 11%"
-    row_ppn[4].text = f"{round(ppn)}"
+    row_ppn[4].text = format_rupiah(ppn)
     for cell in row_ppn:
         cell.paragraphs[0].alignment = 1
 
     row_total = table.add_row().cells
     row_total[3].text = "TOTAL"
-    row_total[4].text = f"{round(total)}"
+    row_total[4].text = format_rupiah(total)
     for cell in row_total:
         cell.paragraphs[0].alignment = 1
 
@@ -192,7 +194,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         if diskon_option == "Diskon persentase (%)":
             doc.add_paragraph(f"Diskon: {round(diskon_value)}%")
         else:
-            doc.add_paragraph(f"Diskon: Rp {round(price_diskon)}")
+            doc.add_paragraph(f"Diskon: {format_rupiah(price_diskon)}")
     
     if ketersediaan != "Jangan tampilkan":
         doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
