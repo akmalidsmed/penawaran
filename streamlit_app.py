@@ -1,5 +1,18 @@
 import streamlit as st
 from datetime import date
+
+# Fungsi untuk format tanggal Indonesia
+def format_tanggal_indonesia(tanggal):
+    bulan_dict = {
+        "January": "Januari", "February": "Februari", "March": "Maret",
+        "April": "April", "May": "Mei", "June": "Juni",
+        "July": "Juli", "August": "Agustus", "September": "September",
+        "October": "Oktober", "November": "November", "December": "Desember"
+    }
+    hari = tanggal.day
+    bulan = bulan_dict[tanggal.strftime('%B')]
+    tahun = tanggal.year
+    return f"{hari} {bulan} {tahun}"
 import io
 from docx import Document
 
@@ -21,16 +34,16 @@ nama_customer = st.text_input("Nama Customer")
 alamat = st.text_area("Alamat Customer")
 nomor_penawaran = st.text_input("Nomor Penawaran")
 tanggal = st.date_input("Tanggal", value=date.today())
-nama_unit = st.text_input("Nama Unit")
+nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 
 # Data Item
-st.subheader("\U0001F9FE Daftar Item Penawaran")
+st.subheader("Item yang ditawarkan")
 items = []
 jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1, format="%d")
 
 for i in range(jumlah_item):
     if jumlah_item > 1:
-        st.markdown(f"### 🧾 Item {i+1}", key=f"judul{i}")
+        st.markdown(f"### Item {i+1}", key=f"judul{i}")
         st.markdown("---", key=f"garis{i}")
 
     qty = st.text_input("Qty", key=f"qty_{i}")
@@ -38,6 +51,7 @@ for i in range(jumlah_item):
     partnumber = st.text_input("Part Number", key=f"part_{i}")
     description = st.text_input("Description", key=f"desc_{i}")
     priceperitem = st.number_input("Harga per item", value=0, key=f"harga_{i}", format="%d")
+diskon = st.number_input("Diskon (%)", value=0, key=f"diskon_{i}", format="%d")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
@@ -54,10 +68,7 @@ for i in range(jumlah_item):
     })
 
 # Diskon & PIC
-st.subheader("\U0001F4B2 Diskon dan PIC")
-diskon = st.number_input("Diskon (%)", value=0, format="%d")
-ketersediaan_options = ["Jangan tampilkan", "Ready stock", "Ready jika persediaan masih ada", "Indent"]
-ketersediaan = st.selectbox("Ketersediaan Barang", ketersediaan_options)
+# (Sekarang bagian diskon digabung ke bawah form item)
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
 
@@ -74,7 +85,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.bold = True
     run.underline = True
 
-    doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25\t\t\tJakarta, {tanggal.strftime('%d %B %Y')}")
+    doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25			Jakarta, {format_tanggal_indonesia(tanggal)}")
 
     doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
 
