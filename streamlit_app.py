@@ -1,0 +1,107 @@
+import streamlit as st
+from datetime import date
+import io
+from docx import Document
+
+st.title("\U0001F4C4 Generator Penawaran Otomatis")
+
+# Input Umum
+nama_customer = st.text_input("Nama Customer")
+alamat = st.text_area("Alamat Customer")
+nomor_penawaran = st.text_input("Nomor Penawaran", "001")
+tanggal = st.date_input("Tanggal", value=date.today())
+nama_unit = st.text_input("Nama Unit")
+ketersediaan = st.text_input("Ketersediaan Barang")
+pic = st.text_input("Nama PIC")
+pic_telp = st.text_input("No. Telp PIC")
+
+diskon = st.number_input("Diskon (%)", value=0.0)
+
+# Data Item
+st.subheader("\U0001F9FE Daftar Item Penawaran")
+items = []
+jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1)
+
+for i in range(jumlah_item):
+    st.markdown(f"**Item {i+1}**")
+    qty = st.text_input(f"Qty {i+1}", key=f"qty{i}")
+    uom = st.text_input(f"UOM {i+1}", key=f"uom{i}")
+    partnumber = st.text_input(f"Part Number {i+1}", key=f"part{i}")
+    description = st.text_input(f"Description {i+1}", key=f"desc{i}")
+    priceperitem = st.number_input(f"Harga per item {i+1}", key=f"harga{i}")
+
+    if qty and priceperitem:
+        try:
+            total = float(qty) * priceperitem
+        except:
+            total = 0.0
+    else:
+        total = 0.0
+
+    items.append({
+        "qty": qty,
+        "uom": uom,
+        "partnumber": partnumber,
+        "description": description,
+        "priceperitem": priceperitem,
+        "price": total
+    })
+
+# Generate Dokumen dari Awal
+if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
+    doc = Document()
+
+    doc.add_paragraph("Kepada Yth:")
+    doc.add_paragraph(nama_customer)
+    doc.add_paragraph(alamat)
+
+    doc.add_paragraph(f"\nHal: Penawaran Harga\nNo: {nomor_penawaran}     \t\t Jakarta, {tanggal.strftime('%d %B %Y')}\n")
+
+    doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
+
+    table = doc.add_table(rows=1, cols=5)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Qty'
+    hdr_cells[1].text = 'Part Number'
+    hdr_cells[2].text = 'Description'
+    hdr_cells[3].text = 'Price per item'
+    hdr_cells[4].text = 'Total Price'
+
+    subtotal1 = 0
+    for item in items:
+        row_cells = table.add_row().cells
+        row_cells[0].text = f"{item['qty']}{item['uom']}"
+        row_cells[1].text = item['partnumber']
+        row_cells[2].text = item['description']
+        row_cells[3].text = f"{item['priceperitem']:.2f}"
+        row_cells[4].text = f"{item['price']:.2f}"
+        subtotal1 += item['price']
+
+    price_diskon = subtotal1 * (diskon / 100)
+    subtotal2 = subtotal1 - price_diskon
+    ppn = subtotal2 * 0.11
+    total = subtotal2 + ppn
+
+    doc.add_paragraph(f"\nSub Total I: {subtotal1:.2f}")
+    if diskon > 0:
+        doc.add_paragraph(f"Diskon {diskon:.2f}%: -{price_diskon:.2f}")
+    doc.add_paragraph(f"Sub Total II: {subtotal2:.2f}")
+    doc.add_paragraph(f"PPN 11%: {ppn:.2f}")
+    doc.add_paragraph(f"TOTAL: {total:.2f}\n")
+
+    doc.add_paragraph("Syarat dan ketentuan:")
+    doc.add_paragraph("Harga: Sudah termasuk PPN 11%")
+    doc.add_paragraph(f"Ketersediaan barang: {ketersediaan}")
+    doc.add_paragraph("Pembayaran: Tunai atau transfer")
+    doc.add_paragraph("Masa berlaku: 2 minggu")
+
+    doc.add_paragraph("\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II – Engineering")
+    doc.add_paragraph(f"PIC: {pic}\n{pic_telp}")
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+
+    st.success("\u2705 Dokumen berhasil dibuat!")
+    st.download_button("\u2B07\uFE0F Download Penawaran", buffer, file_name="Penawaran.docx")
