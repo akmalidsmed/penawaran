@@ -41,7 +41,7 @@ for i in range(jumlah_item):
     uom = st.text_input("UOM", key=f"uom{i}")
     partnumber = st.text_input("Part Number", key=f"part{i}")
     description = st.text_input("Description", key=f"desc{i}")
-    priceperitem = st.number_input("Harga per item", key=f"harga{i}")
+    priceperitem = st.number_input("Harga per item", key=f"harga{i}", format="%d")
 
     if qty and priceperitem:
         try:
@@ -62,7 +62,7 @@ for i in range(jumlah_item):
 
 # Diskon & PIC
 st.subheader("\U0001F4B2 Diskon dan PIC")
-diskon = st.number_input("Diskon (%)", value=0.0)
+diskon = st.number_input("Diskon (%)", value=0.0, format="%d")
 ketersediaan = st.text_input("Ketersediaan Barang")
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
