@@ -2,6 +2,13 @@ import streamlit as st
 from datetime import date
 import io
 from docx import Document
+from docx.shared import Inches
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.enum.shape import WD_INLINE_SHAPE
+
+import os
+from PIL import Image
 
 def format_rupiah(angka):
     return "Rp. {:,.0f}".format(angka).replace(",", ".")
@@ -20,7 +27,6 @@ def format_tanggal_indonesia(tanggal):
 
 st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
 
-# Data PIC
 pic_options = {
     "Alamas Ramadhan": "0857 7376 2820",
     "Rully Candra": "0813 1515 4142",
@@ -28,14 +34,12 @@ pic_options = {
     "Denny Firmansyah": "0821 1408 0011"
 }
 
-# Input Umum
 nama_customer = st.text_input("Nama Customer")
 alamat = st.text_area("Alamat Customer")
 nomor_penawaran = st.text_input("Nomor Penawaran")
 tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 
-# Input Item
 st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
 jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=10, value=1, format="%d")
 
@@ -69,11 +73,9 @@ for i in range(jumlah_item):
         "price": total
     })
 
-# Keterangan Lain-lain
 st.markdown("---")
 st.markdown("<h3 style='text-align: center;'>Keterangan lain-lain</h3>", unsafe_allow_html=True)
 
-# Input diskon yang lebih dinamis
 diskon_option = st.radio("Jenis Diskon", ["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"])
 diskon_value = 0
 selected_items = []
@@ -98,15 +100,25 @@ if diskon_option != "Tanpa diskon":
     else:
         diskon_value = st.number_input("Besar diskon (Rp)", min_value=0, value=0, format="%d")
 
-# Ketersediaan dan PIC
 opsi_ketersediaan = ["Jangan tampilkan", "Ready stock", "Ready jika persediaan masih ada", "Indent"]
 ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
 
-# Generate Dokumen
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc = Document()
+
+    # SISIPKAN GAMBAR HEADER (kop surat)
+    section = doc.sections[0]
+    header = section.header
+    header_para = header.paragraphs[0]
+
+    image_path = "/mnt/data/92e028fb-3499-479f-a167-62ec17940b2d.png"
+    if os.path.exists(image_path):
+        try:
+            header_para.add_run().add_picture(image_path, width=Inches(6.5))
+        except Exception as e:
+            st.warning(f"Gagal menambahkan kop surat: {e}")
 
     doc.add_paragraph("Kepada Yth")
     doc.add_paragraph(nama_customer)
@@ -142,14 +154,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1
 
-    # Hitung diskon
     price_diskon = 0
     if diskon_option != "Tanpa diskon" and selected_items:
         if diskon_option == "Diskon persentase (%)":
             for i in selected_items:
                 price_diskon += items[i]['price'] * (diskon_value / 100)
         else:
-            # Diskon nominal dibagi proporsional
             total_terdiskon = sum(items[i]['price'] for i in selected_items)
             for i in selected_items:
                 price_diskon += (items[i]['price'] / total_terdiskon) * diskon_value
