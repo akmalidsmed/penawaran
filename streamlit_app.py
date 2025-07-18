@@ -93,14 +93,28 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
 
-    doc.add_paragraph(f"\nSub Total I: {subtotal1:.2f}")
-    if diskon > 0:
-        doc.add_paragraph(f"Diskon {diskon:.2f}%: -{price_diskon:.2f}")
-    doc.add_paragraph(f"Sub Total II: {subtotal2:.2f}")
-    doc.add_paragraph(f"PPN 11%: {ppn:.2f}")
-    doc.add_paragraph(f"TOTAL: {total:.2f}\n")
+    row_subtotal1 = table.add_row().cells
+    row_subtotal1[3].text = "Sub Total I"
+    row_subtotal1[4].text = f"{subtotal1:.2f}"
 
-    doc.add_paragraph("Syarat dan ketentuan:")
+    if diskon > 0:
+        row_diskon = table.add_row().cells
+        row_diskon[3].text = f"Diskon {diskon:.2f}%"
+        row_diskon[4].text = f"-{price_diskon:.2f}"
+
+    row_subtotal2 = table.add_row().cells
+    row_subtotal2[3].text = "Sub Total II"
+    row_subtotal2[4].text = f"{subtotal2:.2f}"
+
+    row_ppn = table.add_row().cells
+    row_ppn[3].text = "PPN 11%"
+    row_ppn[4].text = f"{ppn:.2f}"
+
+    row_total = table.add_row().cells
+    row_total[3].text = "TOTAL"
+    row_total[4].text = f"{total:.2f}"
+
+    doc.add_paragraph("\nSyarat dan ketentuan:")
     doc.add_paragraph("Harga: Sudah termasuk PPN 11%")
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
@@ -118,3 +132,8 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     st.success("\u2705 Dokumen berhasil dibuat!")
     st.download_button("\u2B07\uFE0F Download Penawaran", buffer, file_name="Penawaran.docx")
+
+# Tombol Reset di bagian paling bawah
+st.markdown("---")
+if st.button("🔄 Reset Form"):
+    st.experimental_rerun()
