@@ -12,7 +12,7 @@ if st.session_state.reset:
     st.experimental_rerun()
 
 st.title("Penawaran Harga")
-st.image("logo_idsmed.png", width=200)
+st.markdown("<div style='text-align: right;'><img src='logo_idsmed.png' width='150'></div>", unsafe_allow_html=True)
 
 # Data PIC
 pic_options = {
