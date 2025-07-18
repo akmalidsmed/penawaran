@@ -24,7 +24,7 @@ pic_options = {
 # Input Umum
 nama_customer = st.text_input("Nama Customer")
 alamat = st.text_area("Alamat Customer")
-nomor_penawaran = st.text_input("Nomor Penawaran", "001")
+nomor_penawaran = st.text_input("Nomor Penawaran")
 tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit")
 
