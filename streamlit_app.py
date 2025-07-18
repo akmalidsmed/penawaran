@@ -1,5 +1,7 @@
 import streamlit as st
 from datetime import date
+import io
+from docx import Document
 
 # Fungsi untuk format tanggal Indonesia
 def format_tanggal_indonesia(tanggal):
@@ -13,13 +15,8 @@ def format_tanggal_indonesia(tanggal):
     bulan = bulan_dict[tanggal.strftime('%B')]
     tahun = tanggal.year
     return f"{hari} {bulan} {tahun}"
-import io
-from docx import Document
-
-
 
 st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
-
 
 # Data PIC
 pic_options = {
@@ -74,7 +71,6 @@ for i in range(jumlah_item):
     })
 
 # Diskon & PIC
-# (Sekarang bagian diskon digabung ke bawah form item)
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
 
@@ -85,7 +81,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     # Ganti spasi antar paragraf menjadi lebih rapat
     style = doc.styles['Normal']
     font = style.font
-    from docx.oxml.ns import qn
     for para in doc.paragraphs:
         para.paragraph_format.space_after = 0
 
@@ -98,7 +93,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.bold = True
     run.underline = True
 
-    doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25			Jakarta, {format_tanggal_indonesia(tanggal)}")
+    doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25            Jakarta, {format_tanggal_indonesia(tanggal)}")
 
     doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
 
@@ -171,20 +166,23 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph(f"PIC: {pic}")
     doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
 
-    doc.add_paragraph("\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II – Engineering")
+    doc.add_paragraph("\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II - Engineering")
 
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
 
+    # Preview dokumen
     buffer.seek(0)
     preview_doc = Document(buffer)
-    preview_text = "
-".join([para.text for para in preview_doc.paragraphs])".join([para.text for para in preview_doc.paragraphs])
+    preview_text = "\n".join([para.text for para in preview_doc.paragraphs])
 
     st.markdown("### Preview Penawaran")
     st.text_area("Isi Penawaran", value=preview_text, height=400)
 
-    st.download_button("⬇️ Download Penawaran", buffer, file_name="Penawaran.docx")
-
-
+    st.download_button(
+        label="⬇️ Download Penawaran",
+        data=buffer,
+        file_name="Penawaran.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
