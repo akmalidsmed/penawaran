@@ -45,14 +45,6 @@ with col2:
 
 # Data Item
 st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
-opsi_ketersediaan = [
-    "Jangan tampilkan",
-    "Ready stock",
-    "Ready jika persediaan masih ada",
-    "Indent"
-]
-ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
-diskon = st.number_input("Diskon (%)", min_value=0, max_value=100, value=0, key="diskon")
 
 items = []
 jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=20, value=1)
@@ -85,6 +77,17 @@ for i in range(jumlah_item):
         "priceperitem": priceperitem,
         "price": total
     })
+
+# Pindahkan Diskondan Ketersediaan Barang ke bawah
+diskon = st.number_input("Diskon (%)", min_value=0, max_value=100, value=0, key="diskon")
+
+opsi_ketersediaan = [
+    "Jangan tampilkan",
+    "Ready stock",
+    "Ready jika persediaan masih ada",
+    "Indent"
+]
+ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
 
 # Generate Dokumen
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
