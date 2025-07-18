@@ -111,32 +111,32 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
 
-        row_subtotal1 = table.add_row().cells
+    row_subtotal1 = table.add_row().cells
     row_subtotal1[3].text = "Sub Total I"
     row_subtotal1[4].text = f"{round(subtotal1)}"
     for cell in row_subtotal1:
         cell.paragraphs[0].alignment = 1
 
     if diskon > 0:
-                row_diskon = table.add_row().cells
+        row_diskon = table.add_row().cells
         row_diskon[3].text = f"Diskon {round(diskon)}%"
         row_diskon[4].text = f"-{round(price_diskon)}"
         for cell in row_diskon:
             cell.paragraphs[0].alignment = 1
 
-        row_subtotal2 = table.add_row().cells
+    row_subtotal2 = table.add_row().cells
     row_subtotal2[3].text = "Sub Total II"
     row_subtotal2[4].text = f"{round(subtotal2)}"
     for cell in row_subtotal2:
         cell.paragraphs[0].alignment = 1
 
-        row_ppn = table.add_row().cells
+    row_ppn = table.add_row().cells
     row_ppn[3].text = "PPN 11%"
     row_ppn[4].text = f"{round(ppn)}"
     for cell in row_ppn:
         cell.paragraphs[0].alignment = 1
 
-        row_total = table.add_row().cells
+    row_total = table.add_row().cells
     row_total[3].text = "TOTAL"
     row_total[4].text = f"{round(total)}"
     for cell in row_total:
