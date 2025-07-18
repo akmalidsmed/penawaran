@@ -170,11 +170,10 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.save(buffer)
     buffer.seek(0)
 
-    from docx2txt import process
-    with open("temp_preview.docx", "wb") as f:
-        f.write(buffer.read())
     buffer.seek(0)
-    preview_text = process("temp_preview.docx")
+    preview_doc = Document(buffer)
+    preview_text = "
+".join([para.text for para in preview_doc.paragraphs])
 
     st.markdown("### Preview Penawaran")
     st.text_area("Isi Penawaran", value=preview_text, height=400)
