@@ -37,6 +37,13 @@ tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 
 # Data Item
+opsi_ketersediaan = [
+    "Jangan tampilkan",
+    "Ready stock",
+    "Ready jika persediaan masih ada",
+    "Indent"
+]
+ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
 st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
 items = []
 jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=10, value=1, format="%d")
@@ -163,7 +170,15 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.save(buffer)
     buffer.seek(0)
 
-    st.success("\u2705 Dokumen berhasil dibuat!")
-    st.download_button("\u2B07\uFE0F Download Penawaran", buffer, file_name="Penawaran.docx")
+    from docx2txt import process
+    with open("temp_preview.docx", "wb") as f:
+        f.write(buffer.read())
+    buffer.seek(0)
+    preview_text = process("temp_preview.docx")
+
+    st.markdown("### Preview Penawaran")
+    st.text_area("Isi Penawaran", value=preview_text, height=400)
+
+    st.download_button("⬇️ Download Penawaran", buffer, file_name="Penawaran.docx")
 
 
