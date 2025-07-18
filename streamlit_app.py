@@ -4,7 +4,7 @@ import io
 from docx import Document
 
 def format_rupiah(angka):
-    return "Rp. {:,.0f},-".format(angka).replace(",", ".")
+    return "Rp. {:,.0f}".format(angka).replace(",", ".")
 
 def format_tanggal_indonesia(tanggal):
     bulan_dict = {
