@@ -40,6 +40,7 @@ nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 st.subheader("Item yang ditawarkan")
 items = []
 jumlah_item = st.number_input("Jumlah Baris Item", min_value=1, max_value=10, value=1, format="%d")
+diskon = st.number_input("Diskon (%)", value=0, key="diskon", format="%d")
 
 for i in range(jumlah_item):
     if jumlah_item > 1:
@@ -51,7 +52,6 @@ for i in range(jumlah_item):
     partnumber = st.text_input("Part Number", key=f"part_{i}")
     description = st.text_input("Description", key=f"desc_{i}")
     priceperitem = st.number_input("Harga per item", value=0, key=f"harga_{i}", format="%d")
-diskon = st.number_input("Diskon (%)", value=0, key=f"diskon_{i}", format="%d")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
