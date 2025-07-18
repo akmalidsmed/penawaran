@@ -49,15 +49,15 @@ jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_va
 for i in range(jumlah_item):
     st.markdown(f"### Item {i+1}")
     col1, col2, col3 = st.columns([1, 3, 2])
-    
+
     with col1:
         qty = st.text_input("Qty", value="", key=f"qty_{i}")
         uom = st.text_input("UOM", value="PC", key=f"uom_{i}")
-    
+
     with col2:
         partnumber = st.text_input("Part Number", key=f"part_{i}")
         description = st.text_area("Description", key=f"desc_{i}")
-    
+
     with col3:
         priceperitem = st.number_input("Harga per item (Rp)", min_value=0, value=0, key=f"harga_{i}")
         try:
@@ -76,10 +76,15 @@ for i in range(jumlah_item):
     })
 
 # Input Diskon
-diskontype = st.radio("Jenis Diskon", ["Tidak ada diskon", "Diskon Persentase"], horizontal=True)
+diskontype = st.radio("Jenis Diskon", ["Tidak ada diskon", "Diskon Persentase", "Diskon Nominal"], horizontal=True)
 diskon_value = 0
 if diskontype == "Diskon Persentase":
     diskon_value = st.number_input("Diskon (%)", min_value=0, max_value=100, value=0)
+elif diskontype == "Diskon Nominal":
+    diskon_value = st.number_input("Diskon (Rp)", min_value=0, value=0)
+
+# Ketersediaan Barang
+ketersediaan = st.selectbox("Ketersediaan Barang", ["Ready stock", "Ready jika persediaan masih ada", "Indent", "Jangan tampilkan"])
 
 # Data PIC
 pic_options = {
@@ -91,66 +96,43 @@ pic_options = {
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
 
-# Ketersediaan Barang
-ketersediaan = st.selectbox("Ketersediaan Barang", ["Ready stock", "Ready jika persediaan masih ada", "Indent"])
-
 # Generate Dokumen
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     if not nama_customer or not alamat:
         st.error("Harap isi Nama Customer dan Alamat terlebih dahulu!")
     else:
         doc = Document()
-        
-        # Set default font
         style = doc.styles['Normal']
         font = style.font
         font.name = 'Arial'
         font.size = Pt(11)
-        
-        # Header dokumen
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        run = p.add_run("Kepada Yth")
-        run.bold = True
-        
-        p = doc.add_paragraph()
-        run = p.add_run(nama_customer)
-        run.bold = True
-        
+
+        doc.add_paragraph().add_run("Kepada Yth").bold = True
+        doc.add_paragraph().add_run(nama_customer).bold = True
         doc.add_paragraph(alamat)
         doc.add_paragraph()
-        
-        # Hal: Penawaran Harga
-        p = doc.add_paragraph()
-        run = p.add_run("Hal: Penawaran Harga")
-        run.bold = True
-        run.underline = True
-        
-        # Nomor dan tanggal
+
+        doc.add_paragraph().add_run("Hal: Penawaran Harga").bold = True
+        doc.paragraphs[-1].runs[0].underline = True
         doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25\t\t\tJakarta, {format_tanggal_indonesia(tanggal)}")
         doc.add_paragraph()
-        
-        # Konten utama
+
         doc.add_paragraph(
             f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama "
             f"ini kami mengajukan penawaran harga item untuk unit {nama_unit} di "
             f"{nama_customer}, Adapun penawaran harga adalah sebagai berikut:"
         )
         doc.add_paragraph()
-        
-        # Tabel item
+
         table = doc.add_table(rows=1, cols=5)
         table.style = 'Table Grid'
         hdr_cells = table.rows[0].cells
-        
-        # Header tabel
         headers = ['Qty', 'Part Number', 'Description', 'Price per item', 'Total Price']
         for i, header in enumerate(headers):
             hdr_cells[i].text = header
             hdr_cells[i].paragraphs[0].runs[0].bold = True
             hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Isi tabel
+
         subtotal = 0
         for item in items:
             row_cells = table.add_row().cells
@@ -160,30 +142,31 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
             row_cells[3].text = format_uang(item['priceperitem'])
             row_cells[4].text = format_uang(item['price'])
             subtotal += item['price']
-            
             for cell in row_cells:
                 cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Perhitungan PPN dan Total
+
         if diskontype == "Diskon Persentase":
             diskon = subtotal * (diskon_value / 100)
+        elif diskontype == "Diskon Nominal":
+            diskon = diskon_value
+        else:
+            diskon = 0
+
+        if diskon > 0:
             subtotal_after_diskon = subtotal - diskon
-            ppn = subtotal_after_diskon * 0.11
-            total = subtotal_after_diskon + ppn
-            
-            # Baris diskon
             row_cells = table.add_row().cells
-            row_cells[3].text = f"Diskon {diskon_value}%"
+            row_cells[3].text = f"Diskon ({'%.0f' % diskon_value}{'%' if diskontype == 'Diskon Persentase' else 'Rp'})"
             row_cells[4].text = format_uang(-diskon)
             for i in range(5):
                 if i < 3:
                     row_cells[i].text = ""
                 row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         else:
-            ppn = subtotal * 0.11
-            total = subtotal + ppn
-        
-        # Baris PPN
+            subtotal_after_diskon = subtotal
+
+        ppn = subtotal_after_diskon * 0.11
+        total = subtotal_after_diskon + ppn
+
         row_cells = table.add_row().cells
         row_cells[3].text = "PPN 11%"
         row_cells[4].text = format_uang(ppn)
@@ -191,8 +174,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
             if i < 3:
                 row_cells[i].text = ""
             row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Baris TOTAL
+
         row_cells = table.add_row().cells
         row_cells[3].text = "TOTAL"
         row_cells[4].text = format_uang(total)
@@ -200,52 +182,44 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
             if i < 3:
                 row_cells[i].text = ""
             row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if i == 3:
-                row_cells[i].paragraphs[0].runs[0].bold = True
-            if i == 4:
-                row_cells[i].paragraphs[0].runs[0].bold = True
-        
-        # Syarat dan ketentuan
+            row_cells[i].paragraphs[0].runs[0].bold = True
+
         doc.add_paragraph()
         p = doc.add_paragraph()
         run = p.add_run("Syarat dan kondisi penawaran kami adalah :")
         run.underline = True
         run.bold = True
-        
-        doc.add_paragraph(f"Harga : Sudah termasuk PPN 11%")
-        doc.add_paragraph(f"Ketersediaan Barang : {ketersediaan}")
+
+        doc.add_paragraph("Harga : Sudah termasuk PPN 11%")
+        if ketersediaan != "Jangan tampilkan":
+            doc.add_paragraph(f"Ketersediaan Barang : {ketersediaan}")
         doc.add_paragraph("Pembayaran : Tunai atau transfer")
         doc.add_paragraph("Masa berlaku : 2 minggu")
         doc.add_paragraph()
-        
-        # Footer
+
         doc.add_paragraph("Demikian penawaran harga ini kami ajukan. Sambil menunggu kabar baik dari Bapak / Ibu, kami mengucapkan terima kasih.")
         doc.add_paragraph()
         doc.add_paragraph("Hormat kami,")
         doc.add_paragraph("PT. IDS Medical Systems Indonesia")
         doc.add_paragraph()
-        
+
         p = doc.add_paragraph()
         run = p.add_run("M. Athur Yassin")
         run.underline = True
         run.bold = True
-        
         doc.add_paragraph("Manager II - Engineering")
         doc.add_paragraph()
-        
+
         doc.add_paragraph(f"PIC: {pic}")
         doc.add_paragraph(pic_telp)
-        
-        # Simpan ke buffer
+
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
-        
-        # Nama file
+
         nama_file = f"{nomor_penawaran} {nama_customer} - {nama_unit}, {items[0]['description'] if items else ''}.docx"
         nama_file = re.sub(r'[\\/*?:"<>|]', "", nama_file)
-        
-        # Download button
+
         st.download_button(
             label="⬇️ Download Penawaran",
             data=buffer,
