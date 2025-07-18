@@ -73,9 +73,10 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph(nama_customer)
     doc.add_paragraph(alamat)
 
-    p = doc.add_paragraph()
-p.add_run("Hal: Penawaran Harga").bold = True
-p.runs[0].underline = True
+        p = doc.add_paragraph()
+    run = p.add_run("Hal: Penawaran Harga")
+    run.bold = True
+    run.underline = True
 doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25			Jakarta, {tanggal.strftime('%d %B %Y')}")
 
     doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
