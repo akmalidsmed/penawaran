@@ -33,6 +33,7 @@ nomor_penawaran = st.text_input("Nomor Penawaran")
 tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
 
+# Input Item
 st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
 jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=10, value=1, format="%d")
 
@@ -50,15 +51,6 @@ for i in range(jumlah_item):
     partnumber = st.text_input(f"Part Number Item {i+1}", key=f"part_{i}")
     description = st.text_input(f"Description Item {i+1}", key=f"desc_{i}")
     priceperitem = st.number_input(f"Harga per item {i+1}", value=0, key=f"harga_{i}", format="%d")
-    diskon = st.number_input(f"Diskon (%) Item {i+1}", value=0, key=f"diskon_{i}", format="%d")
-    
-    opsi_ketersediaan = [
-        "Jangan tampilkan",
-        "Ready stock",
-        "Ready jika persediaan masih ada",
-        "Indent"
-    ]
-    ketersediaan = st.selectbox(f"Ketersediaan Barang Item {i+1}", opsi_ketersediaan, key=f"ketersediaan_{i}")
 
     try:
         total = float(qty) * priceperitem if qty else 0.0
@@ -71,12 +63,26 @@ for i in range(jumlah_item):
         "partnumber": partnumber,
         "description": description,
         "priceperitem": priceperitem,
-        "diskon": diskon,
-        "ketersediaan": ketersediaan,
         "price": total
     })
 
-# PIC
+# Keterangan Lain-lain
+st.markdown("---")
+st.markdown("<h3 style='text-align: center;'>Keterangan lain-lain</h3>", unsafe_allow_html=True)
+
+# Input diskon
+diskon = st.number_input("Diskon (%)", value=0, format="%d")
+
+# Input ketersediaan barang
+opsi_ketersediaan = [
+    "Jangan tampilkan",
+    "Ready stock",
+    "Ready jika persediaan masih ada",
+    "Indent"
+]
+ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
+
+# Input PIC
 pic = st.selectbox("Nama PIC", list(pic_options.keys()))
 pic_telp = pic_options[pic]
 
@@ -111,7 +117,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     hdr_cells[4].text = 'Total Price'
 
     subtotal1 = 0
-    total_diskon = 0
     for item in items:
         row_cells = table.add_row().cells
         row_cells[0].text = f"{item['qty']}{item['uom']}"
@@ -120,12 +125,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         row_cells[3].text = f"{round(item['priceperitem'])}"
         row_cells[4].text = f"{round(item['price'])}"
         subtotal1 += item['price']
-        total_diskon += item['price'] * (item['diskon'] / 100)
 
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1  # Center alignment
 
-    subtotal2 = subtotal1 - total_diskon
+    price_diskon = subtotal1 * (diskon / 100)
+    subtotal2 = subtotal1 - price_diskon
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
 
@@ -135,10 +140,10 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     for cell in row_subtotal1:
         cell.paragraphs[0].alignment = 1
 
-    if total_diskon > 0:
+    if diskon > 0:
         row_diskon = table.add_row().cells
-        row_diskon[3].text = f"Total Diskon"
-        row_diskon[4].text = f"-{round(total_diskon)}"
+        row_diskon[3].text = f"Diskon {round(diskon)}%"
+        row_diskon[4].text = f"-{round(price_diskon)}"
         for cell in row_diskon:
             cell.paragraphs[0].alignment = 1
 
@@ -165,10 +170,9 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
 
-    if any(item['ketersediaan'] != "Jangan tampilkan" for item in items):
-        ketersediaan_items = [item['ketersediaan'] for item in items if item['ketersediaan'] != "Jangan tampilkan"]
-        doc.add_paragraph(f"Ketersediaan Barang: {', '.join(set(ketersediaan_items))}")
-
+    doc.add_paragraph(f"Diskon: {round(diskon)}%")
+    if ketersediaan != "Jangan tampilkan":
+        doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
     doc.add_paragraph(f"PIC: {pic}")
     doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
 
