@@ -11,7 +11,6 @@ if st.session_state.reset:
     st.session_state.reset = False
     st.experimental_rerun()
 
-st.markdown("<div style='text-align: center;'><img src='logo_idsmed.png' width='150'></div>", unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
 
 
