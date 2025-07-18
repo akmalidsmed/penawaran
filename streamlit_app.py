@@ -11,7 +11,7 @@ if st.session_state.reset:
     st.session_state.reset = False
     st.experimental_rerun()
 
-st.image("/mnt/data/9dd0e802-b5ce-4706-91a6-e8397ee85bde.png", width=200)
+st.image("logo_idsmed.png", width=200)
 st.title("Penawaran Harga")
 
 # Data PIC
