@@ -217,13 +217,18 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
                 cell.paragraphs[0].alignment = 1
             return row
 
-        add_total_row(table, "Sub Total I", subtotal1)
-        if diskontype != "Tidak ada diskon":
-            if diskontype == "Diskon Persentase":
-                add_total_row(table, f"Diskon {round(diskon_value)}%", -price_diskon)
-            else:
-                add_total_row(table, "Diskon Nominal", -price_diskon)
-        add_total_row(table, "Sub Total II", subtotal2)
+        # Logika penambahan subtotal berdasarkan jumlah item dan diskon
+        if jumlah_item > 1:
+            add_total_row(table, "Sub Total I", subtotal1)
+            
+            if diskontype != "Tidak ada diskon":
+                if diskontype == "Diskon Persentase":
+                    add_total_row(table, f"Diskon {round(diskon_value)}%", -price_diskon)
+                else:
+                    add_total_row(table, "Diskon", -price_diskon)
+                
+                add_total_row(table, "Sub Total II", subtotal2)
+        
         add_total_row(table, "PPN 11%", ppn)
         add_total_row(table, "TOTAL", total)
 
@@ -239,10 +244,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         doc.add_paragraph("4. Masa berlaku: 2 minggu")
 
         if diskontype != "Tidak ada diskon":
-            if diskontype == "Diskon Persentase":
-                doc.add_paragraph(f"5. Diskon: {round(diskon_value)}%")
-            else:
-                doc.add_paragraph(f"5. Diskon Nominal: {format_uang(diskon_value)}")
+            doc.add_paragraph(f"5. Diskon: {format_uang(diskon_value) if diskontype == 'Diskon Nominal' else f'{round(diskon_value)}%'}")
 
         doc.add_paragraph(f"\nPIC: {pic}")
         doc.add_paragraph(pic_telp)  # Hanya menampilkan nomor telepon saja
@@ -254,6 +256,11 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
+
+        # Nama file sesuai permintaan
+        description_text = items[0]['description'] if items and items[0]['description'] else ""
+        nama_file = f"{nomor_penawaran} {nama_customer} - {nama_unit}, {description_text}.docx"
+        nama_file = re.sub(r'[\\/*?:"<>|]', "", nama_file)  # Menghapus karakter tidak valid untuk nama file
 
         # Preview dokumen
         preview_doc = Document(buffer)
@@ -267,7 +274,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         st.download_button(
             label="⬇️ Download Penawaran",
             data=buffer,
-            file_name=f"Penawaran_{nama_customer.replace(' ', '_')}.docx",
+            file_name=nama_file,
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
