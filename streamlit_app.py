@@ -230,20 +230,22 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         # Syarat dan ketentuan
         doc.add_paragraph("\nSyarat dan ketentuan:")
         doc.add_paragraph("1. Harga: Sudah termasuk PPN 11%")
-        doc.add_paragraph("2. Pembayaran: Tunai atau transfer")
-        doc.add_paragraph("3. Masa berlaku: 2 minggu")
+        
+        # Ketersediaan barang di urutan kedua jika ditampilkan
+        if ketersediaan != "Jangan tampilkan":
+            doc.add_paragraph(f"2. Ketersediaan Barang: {ketersediaan}")
+        
+        doc.add_paragraph("3. Pembayaran: Tunai atau transfer")
+        doc.add_paragraph("4. Masa berlaku: 2 minggu")
 
         if diskontype != "Tidak ada diskon":
             if diskontype == "Diskon Persentase":
-                doc.add_paragraph(f"4. Diskon: {round(diskon_value)}%")
+                doc.add_paragraph(f"5. Diskon: {round(diskon_value)}%")
             else:
-                doc.add_paragraph(f"4. Diskon Nominal: {format_uang(diskon_value)}")
-        
-        if ketersediaan != "Jangan tampilkan":
-            doc.add_paragraph(f"5. Ketersediaan Barang: {ketersediaan}")
+                doc.add_paragraph(f"5. Diskon Nominal: {format_uang(diskon_value)}")
 
         doc.add_paragraph(f"\nPIC: {pic}")
-        doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
+        doc.add_paragraph(pic_telp)  # Hanya menampilkan nomor telepon saja
 
         # Footer
         doc.add_paragraph("\n\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II – Engineering")
