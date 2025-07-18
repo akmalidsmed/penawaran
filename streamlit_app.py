@@ -2,6 +2,7 @@ import streamlit as st
 from datetime import date
 import io
 from docx import Document
+import re
 
 # Fungsi untuk format tanggal Indonesia
 def format_tanggal_indonesia(tanggal):
@@ -16,19 +17,22 @@ def format_tanggal_indonesia(tanggal):
     tahun = tanggal.year
     return f"{hari} {bulan} {tahun}"
 
+# Fungsi untuk format mata uang
+def format_uang(angka):
+    return f"Rp {angka:,.0f}".replace(",", ".")
+
+# Fungsi untuk parse input uang
+def parse_uang(uang_str):
+    try:
+        return float(re.sub(r'[^\d]', '', uang_str))
+    except:
+        return 0
+
 # Konfigurasi halaman Streamlit
 st.set_page_config(page_title="Generator Penawaran Harga", layout="wide")
 
 # Judul aplikasi
 st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
-
-# Data PIC
-pic_options = {
-    "Alamas Ramadhan": "0857 7376 2820",
-    "Rully Candra": "0813 1515 4142",
-    "Muhammad Lukmansyah": "0821 2291 1020",
-    "Denny Firmansyah": "0821 1408 0011"
-}
 
 # Input Umum
 col1, col2 = st.columns(2)
@@ -40,8 +44,6 @@ with col1:
 with col2:
     tanggal = st.date_input("Tanggal", value=date.today())
     nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
-    pic = st.selectbox("Nama PIC", list(pic_options.keys()))
-    pic_telp = pic_options[pic]
 
 # Data Item
 st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
@@ -54,20 +56,23 @@ for i in range(jumlah_item):
     col1, col2, col3 = st.columns([1, 3, 2])
     
     with col1:
-        qty = st.text_input("Qty", value="1", key=f"qty_{i}")
-        uom = st.text_input("UOM", value="PCS", key=f"uom_{i}")
+        qty = st.text_input("Qty", value="", key=f"qty_{i}")
+        uom = st.text_input("UOM", value="", key=f"uom_{i}")
     
     with col2:
         partnumber = st.text_input("Part Number", key=f"part_{i}")
         description = st.text_area("Description", key=f"desc_{i}")
     
     with col3:
-        priceperitem = st.number_input("Harga per item", min_value=0, value=0, key=f"harga_{i}")
+        price_input = st.text_input("Harga per item (Rp)", value="", key=f"harga_input_{i}")
+        priceperitem = parse_uang(price_input)
+        
         try:
-            total = float(qty) * priceperitem if qty else 0.0
+            qty_val = float(qty) if qty else 0
+            total = qty_val * priceperitem
         except:
-            total = 0.0
-        st.text(f"Total: Rp {total:,.0f}".replace(",", "."))
+            total = 0
+        st.text(f"Total: {format_uang(total)}")
 
     items.append({
         "qty": qty,
@@ -78,9 +83,44 @@ for i in range(jumlah_item):
         "price": total
     })
 
-# Pindahkan Diskondan Ketersediaan Barang ke bawah
-diskon = st.number_input("Diskon (%)", min_value=0, max_value=100, value=0, key="diskon")
+# Bagian Keterangan Lain-lain
+st.markdown("---")
+st.markdown("<h3 style='text-align: center;'>Keterangan Lain-lain</h3>", unsafe_allow_html=True)
 
+# Input Diskon
+st.markdown("**Diskon**")
+diskontype = st.radio("Jenis Diskon", 
+                     ["Tidak ada diskon", "Diskon Persentase", "Diskon Nominal"], 
+                     horizontal=True)
+
+diskon_value = 0
+diskon_items = []
+
+if diskontype == "Diskon Persentase":
+    diskon_persen = st.number_input("Diskon (%)", min_value=0, max_value=100, value=0)
+    diskon_value = diskon_persen
+    
+    # Pilih item yang dapat diskon
+    st.markdown("**Berlaku untuk item:**")
+    all_items = st.checkbox("Semua item", value=True, key="all_items_diskon")
+    if not all_items:
+        diskon_items = st.multiselect("Pilih item yang dapat diskon", 
+                                    [f"Item {i+1}" for i in range(jumlah_item)],
+                                    default=[f"Item {i+1}" for i in range(jumlah_item)])
+
+elif diskontype == "Diskon Nominal":
+    diskon_nominal_input = st.text_input("Diskon Nominal (Rp)", value="")
+    diskon_value = parse_uang(diskon_nominal_input)
+    
+    # Pilih item yang dapat diskon
+    st.markdown("**Berlaku untuk item:**")
+    all_items = st.checkbox("Semua item", value=True, key="all_items_diskon_nominal")
+    if not all_items:
+        diskon_items = st.multiselect("Pilih item yang dapat diskon", 
+                                    [f"Item {i+1}" for i in range(jumlah_item)],
+                                    default=[f"Item {i+1}" for i in range(jumlah_item)])
+
+# Ketersediaan Barang
 opsi_ketersediaan = [
     "Jangan tampilkan",
     "Ready stock",
@@ -88,6 +128,16 @@ opsi_ketersediaan = [
     "Indent"
 ]
 ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
+
+# Data PIC (dengan urutan baru)
+pic_options = {
+    "Muhammad Lukmansyah": "0821 2291 1020",
+    "Rully Candra": "0813 1515 4142",
+    "Denny Firmansyah": "0821 1408 0011",
+    "Alamas Ramadhan": "0857 7376 2820"
+}
+pic = st.selectbox("Nama PIC", list(pic_options.keys()))
+pic_telp = pic_options[pic]
 
 # Generate Dokumen
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
@@ -126,20 +176,34 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         hdr_cells[4].text = 'Total Price'
 
         subtotal1 = 0
-        for item in items:
+        for idx, item in enumerate(items):
             row_cells = table.add_row().cells
-            row_cells[0].text = f"{item['qty']} {item['uom']}"
+            row_cells[0].text = f"{item['qty']} {item['uom']}" if item['uom'] else item['qty']
             row_cells[1].text = item['partnumber']
             row_cells[2].text = item['description']
-            row_cells[3].text = f"Rp {item['priceperitem']:,.0f}".replace(",", ".")
-            row_cells[4].text = f"Rp {item['price']:,.0f}".replace(",", ".")
+            row_cells[3].text = format_uang(item['priceperitem'])
+            row_cells[4].text = format_uang(item['price'])
             subtotal1 += item['price']
 
             for cell in row_cells:
                 cell.paragraphs[0].alignment = 1  # Center alignment
 
         # Perhitungan harga
-        price_diskon = subtotal1 * (diskon / 100)
+        if diskontype == "Diskon Persentase":
+            if diskon_items == [] or f"Semua item" in diskon_items:
+                price_diskon = subtotal1 * (diskon_value / 100)
+            else:
+                price_diskon = sum(items[i]['price'] * (diskon_value / 100) 
+                            for i in range(jumlah_item) if f"Item {i+1}" in diskon_items)
+        elif diskontype == "Diskon Nominal":
+            if diskon_items == [] or f"Semua item" in diskon_items:
+                price_diskon = diskon_value
+            else:
+                total_selected = sum(items[i]['price'] for i in range(jumlah_item) if f"Item {i+1}" in diskon_items)
+                price_diskon = (diskon_value / subtotal1) * total_selected if subtotal1 > 0 else 0
+        else:
+            price_diskon = 0
+
         subtotal2 = subtotal1 - price_diskon
         ppn = subtotal2 * 0.11
         total = subtotal2 + ppn
@@ -148,14 +212,17 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         def add_total_row(table, label, value):
             row = table.add_row().cells
             row[3].text = label
-            row[4].text = f"Rp {value:,.0f}".replace(",", ".")
+            row[4].text = format_uang(value)
             for cell in row:
                 cell.paragraphs[0].alignment = 1
             return row
 
         add_total_row(table, "Sub Total I", subtotal1)
-        if diskon > 0:
-            add_total_row(table, f"Diskon {round(diskon)}%", -price_diskon)
+        if diskontype != "Tidak ada diskon":
+            if diskontype == "Diskon Persentase":
+                add_total_row(table, f"Diskon {round(diskon_value)}%", -price_diskon)
+            else:
+                add_total_row(table, "Diskon Nominal", -price_diskon)
         add_total_row(table, "Sub Total II", subtotal2)
         add_total_row(table, "PPN 11%", ppn)
         add_total_row(table, "TOTAL", total)
@@ -166,8 +233,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         doc.add_paragraph("2. Pembayaran: Tunai atau transfer")
         doc.add_paragraph("3. Masa berlaku: 2 minggu")
 
-        if diskon > 0:
-            doc.add_paragraph(f"4. Diskon: {round(diskon)}%")
+        if diskontype != "Tidak ada diskon":
+            if diskontype == "Diskon Persentase":
+                doc.add_paragraph(f"4. Diskon: {round(diskon_value)}%")
+            else:
+                doc.add_paragraph(f"4. Diskon Nominal: {format_uang(diskon_value)}")
+        
         if ketersediaan != "Jangan tampilkan":
             doc.add_paragraph(f"5. Ketersediaan Barang: {ketersediaan}")
 
