@@ -41,7 +41,7 @@ for i in range(jumlah_item):
     uom = st.text_input("UOM", key=f"uom{i}")
     partnumber = st.text_input("Part Number", key=f"part{i}")
     description = st.text_input("Description", key=f"desc{i}")
-    priceperitem = st.number_input("Harga per item", key=f"harga{i}", format="%d")
+    priceperitem = st.number_input("Harga per item", value=0, key=f"harga{i}", format="%d")
 
     if qty and priceperitem:
         try:
@@ -147,7 +147,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
 
-    doc.add_paragraph(f"Diskon: {diskon:.2f}%")
+    doc.add_paragraph(f"Diskon: {round(diskon)}%")
     doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
     doc.add_paragraph(f"PIC: {pic}")
     doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
