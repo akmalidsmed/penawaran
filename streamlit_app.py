@@ -19,10 +19,6 @@ alamat = st.text_area("Alamat Customer")
 nomor_penawaran = st.text_input("Nomor Penawaran", "001")
 tanggal = st.date_input("Tanggal", value=date.today())
 nama_unit = st.text_input("Nama Unit")
-diskon = st.number_input("Diskon (%)", value=0.0)
-ketersediaan = st.text_input("Ketersediaan Barang")
-pic = st.selectbox("Nama PIC", list(pic_options.keys()))
-pic_telp = pic_options[pic]
 
 # Data Item
 st.subheader("\U0001F9FE Daftar Item Penawaran")
@@ -53,6 +49,13 @@ for i in range(jumlah_item):
         "priceperitem": priceperitem,
         "price": total
     })
+
+# Diskon & PIC
+st.subheader("\U0001F4B2 Diskon dan PIC")
+diskon = st.number_input("Diskon (%)", value=0.0)
+ketersediaan = st.text_input("Ketersediaan Barang")
+pic = st.selectbox("Nama PIC", list(pic_options.keys()))
+pic_telp = pic_options[pic]
 
 # Generate Dokumen dari Awal
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
@@ -99,10 +102,13 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     doc.add_paragraph("Syarat dan ketentuan:")
     doc.add_paragraph("Harga: Sudah termasuk PPN 11%")
-    doc.add_paragraph(f"Ketersediaan barang: {ketersediaan}")
     doc.add_paragraph("Pembayaran: Tunai atau transfer")
     doc.add_paragraph("Masa berlaku: 2 minggu")
-    doc.add_paragraph(f"PIC: {pic}\n{pic_telp}")
+
+    doc.add_paragraph(f"Diskon: {diskon:.2f}%")
+    doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
+    doc.add_paragraph(f"PIC: {pic}")
+    doc.add_paragraph(f"No. Telp PIC: {pic_telp}")
 
     doc.add_paragraph("\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II – Engineering")
 
