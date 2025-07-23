@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import date
 import io
 from docx import Document
-from docx.shared import Inches, Pt
+from docx.shared import Inches
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.shape import WD_INLINE_SHAPE
@@ -108,6 +108,7 @@ pic_telp = pic_options[pic]
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc = Document()
 
+    # SISIPKAN GAMBAR HEADER (kop surat)
     section = doc.sections[0]
     header = section.header
     header_para = header.paragraphs[0]
@@ -119,21 +120,18 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         except Exception as e:
             st.warning(f"Gagal menambahkan kop surat: {e}")
 
-    for text in ["Kepada Yth", nama_customer, alamat]:
-        p = doc.add_paragraph(text)
-        p.paragraph_format.space_after = Pt(0)
+    doc.add_paragraph("Kepada Yth")
+    doc.add_paragraph(nama_customer)
+    doc.add_paragraph(alamat)
 
     p = doc.add_paragraph()
     run = p.add_run("Hal: Penawaran Harga")
     run.bold = True
     run.underline = True
-    p.paragraph_format.space_after = Pt(0)
 
-    p = doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25\t\t\tJakarta, {format_tanggal_indonesia(tanggal)}")
-    p.paragraph_format.space_after = Pt(0)
+    doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25            Jakarta, {format_tanggal_indonesia(tanggal)}")
 
-    p = doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
-    p.paragraph_format.space_after = Pt(0)
+    doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
 
     table = doc.add_table(rows=1, cols=5)
     table.style = 'Table Grid'
@@ -155,7 +153,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         subtotal1 += item['price']
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1
-            cell.paragraphs[0].paragraph_format.space_after = Pt(0)
 
     price_diskon = 0
     if diskon_option != "Tanpa diskon" and selected_items:
@@ -172,13 +169,11 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
 
-    for label, value in [("Sub Total I", subtotal1), ("Sub Total II", subtotal2), ("PPN 11%", ppn), ("TOTAL", total)]:
-        row = table.add_row().cells
-        row[3].text = label
-        row[4].text = format_rupiah(value)
-        for cell in row:
-            cell.paragraphs[0].alignment = 1
-            cell.paragraphs[0].paragraph_format.space_after = Pt(0)
+    row_sub1 = table.add_row().cells
+    row_sub1[3].text = "Sub Total I"
+    row_sub1[4].text = format_rupiah(subtotal1)
+    for cell in row_sub1:
+        cell.paragraphs[0].alignment = 1
 
     if price_diskon > 0:
         row_disc = table.add_row().cells
@@ -189,19 +184,36 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         row_disc[4].text = f"-{format_rupiah(price_diskon)}"
         for cell in row_disc:
             cell.paragraphs[0].alignment = 1
-            cell.paragraphs[0].paragraph_format.space_after = Pt(0)
 
-    for text in ["\nSyarat dan ketentuan:", "Harga: Sudah termasuk PPN 11%", "Pembayaran: Tunai atau transfer", "Masa berlaku: 2 minggu"]:
-        p = doc.add_paragraph(text)
-        p.paragraph_format.space_after = Pt(0)
+    row_sub2 = table.add_row().cells
+    row_sub2[3].text = "Sub Total II"
+    row_sub2[4].text = format_rupiah(subtotal2)
+    for cell in row_sub2:
+        cell.paragraphs[0].alignment = 1
+
+    row_ppn = table.add_row().cells
+    row_ppn[3].text = "PPN 11%"
+    row_ppn[4].text = format_rupiah(ppn)
+    for cell in row_ppn:
+        cell.paragraphs[0].alignment = 1
+
+    row_total = table.add_row().cells
+    row_total[3].text = "TOTAL"
+    row_total[4].text = format_rupiah(total)
+    for cell in row_total:
+        cell.paragraphs[0].alignment = 1
+
+    doc.add_paragraph("\nSyarat dan ketentuan:")
+    doc.add_paragraph("Harga: Sudah termasuk PPN 11%")
+    doc.add_paragraph("Pembayaran: Tunai atau transfer")
+    doc.add_paragraph("Masa berlaku: 2 minggu")
 
     if ketersediaan != "Jangan tampilkan":
-        p = doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
-        p.paragraph_format.space_after = Pt(0)
+        doc.add_paragraph(f"Ketersediaan Barang: {ketersediaan}")
 
-    for text in ["\nHormat kami,", "PT. IDS Medical Systems Indonesia", "M. Athur Yassin", "Manager II - Engineering", pic, pic_telp]:
-        p = doc.add_paragraph(text)
-        p.paragraph_format.space_after = Pt(0)
+    doc.add_paragraph("\nHormat kami,\n\nPT. IDS Medical Systems Indonesia\n\nM. Athur Yassin\nManager II - Engineering\n\n")
+    doc.add_paragraph(pic)
+    doc.add_paragraph(pic_telp)
 
     buffer = io.BytesIO()
     doc.save(buffer)
