@@ -30,8 +30,8 @@ st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow
 pic_options = {
     "Muhammad Lukmansyah": "0821 2291 1020",
     "Rully Candra": "0813 1515 4142",
-    "Denny Firmansyah": "0821 1408 0011"
-    "Alamas Ramadhan": "0857 7376 2820",
+    "Denny Firmansyah": "0821 1408 0011",
+    "Alamas Ramadhan": "0857 7376 2820"
 }
 
 nama_customer = st.text_input("Nama Customer")
