@@ -147,6 +147,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.add_text(f"Jakarta, {format_tanggal_indonesia(tanggal)}")
 
     p.paragraph_format.space_after = Pt(0)
+    doc.add_paragraph()
     p.paragraph_format.space_after = Pt(0)
     p = doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
     p.paragraph_format.space_after = Pt(0)
