@@ -3,13 +3,10 @@ from datetime import date
 import io
 from docx import Document
 from docx.shared import Inches, Pt
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.enum.shape import WD_INLINE_SHAPE
 import os
 from PIL import Image
-from docx2pdf import convert
 from tempfile import NamedTemporaryFile
+from fpdf import FPDF
 
 # ... (bagian awal tetap sama)
 
@@ -134,20 +131,20 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-    # Convert to PDF
-    with NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
-        tmp_docx.write(buffer.getvalue())
-        tmp_docx_path = tmp_docx.name
+    # PDF native generation using FPDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for line in preview_text.split("\n"):
+        pdf.cell(200, 10, txt=line, ln=True)
 
-    pdf_output_path = tmp_docx_path.replace(".docx", ".pdf")
-    try:
-        convert(tmp_docx_path, pdf_output_path)
-        with open(pdf_output_path, "rb") as f:
-            st.download_button(
-                label="⬇️ Download Penawaran (PDF)",
-                data=f,
-                file_name="Penawaran.pdf",
-                mime="application/pdf"
-            )
-    except Exception as e:
-        st.error(f"Gagal konversi ke PDF: {e}")
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+
+    st.download_button(
+        label="⬇️ Download Penawaran (PDF)",
+        data=pdf_buffer,
+        file_name="Penawaran.pdf",
+        mime="application/pdf"
+    )
