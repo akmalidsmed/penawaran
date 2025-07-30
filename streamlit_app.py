@@ -151,6 +151,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     p.paragraph_format.space_after = Pt(0)
     p = doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
     p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.space_before = Pt(0)
 
     table = doc.add_table(rows=1, cols=5)
     table.style = 'Table Grid'
