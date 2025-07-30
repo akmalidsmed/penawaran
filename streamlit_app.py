@@ -137,12 +137,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     p.paragraph_format.space_after = Pt(0)
 
     p = doc.add_paragraph()
-run = p.add_run(f"No: {nomor_penawaran}/JKT/SRV/AA/25")
-run.add_tab()
-run.add_tab()
-run.add_tab()
-run.add_tab()
-run.add_text(f"Jakarta, {format_tanggal_indonesia(tanggal)}")
+    run = p.add_run(f"No: {nomor_penawaran}/JKT/SRV/AA/25")
+    run.add_tab()
+    run.add_tab()
+    run.add_tab()
+    run.add_tab()
+    run.add_text(f"Jakarta, {format_tanggal_indonesia(tanggal)}")
 
     p.paragraph_format.space_after = Pt(0)
 
