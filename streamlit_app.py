@@ -6,7 +6,6 @@ from docx.shared import Inches, Pt
 import os
 from PIL import Image
 from tempfile import NamedTemporaryFile
-from fpdf import FPDF
 
 # ... (bagian awal tetap sama)
 
@@ -129,22 +128,4 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         data=buffer,
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
-
-    # PDF native generation using FPDF
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    for line in preview_text.split("\n"):
-        pdf.cell(200, 10, txt=line, ln=True)
-
-    pdf_buffer = io.BytesIO()
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
-
-    st.download_button(
-        label="⬇️ Download Penawaran (PDF)",
-        data=pdf_buffer,
-        file_name="Penawaran.pdf",
-        mime="application/pdf"
     )
