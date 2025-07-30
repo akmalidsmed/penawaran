@@ -136,7 +136,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.underline = True
     p.paragraph_format.space_after = Pt(0)
 
-    p = doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25\t\t\tJakarta, {format_tanggal_indonesia(tanggal)}")
+    p = doc.add_paragraph(f"No: {nomor_penawaran}/JKT/SRV/AA/25\t\t\t
+    run.add_tab()
+    run.add_tab()
+    run.add_tab()
+    run.add_tab()
+    Jakarta, {format_tanggal_indonesia(tanggal)}")
     p.paragraph_format.space_after = Pt(0)
 
     p = doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
