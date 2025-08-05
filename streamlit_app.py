@@ -6,7 +6,8 @@ from docx.shared import Inches, Pt
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.shape import WD_INLINE_SHAPE
-
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 import os
 from PIL import Image
 
@@ -24,6 +25,33 @@ def format_tanggal_indonesia(tanggal):
     bulan = bulan_dict[tanggal.strftime('%B')]
     tahun = tanggal.year
     return f"{hari} {bulan} {tahun}"
+
+def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, diskon_option, diskon_value, selected_items, ketersediaan, pic, pic_telp):
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # Add content to PDF
+    p.drawString(100, height - 100, f"Kepada Yth: {nama_customer}")
+    p.drawString(100, height - 120, alamat)
+    p.drawString(100, height - 140, f"Nomor Penawaran: {nomor_penawaran}")
+    p.drawString(100, height - 160, f"Tanggal: {format_tanggal_indonesia(tanggal)}")
+    p.drawString(100, height - 180, f"Unit: {nama_unit}")
+
+    # Add items to PDF
+    y_position = height - 220
+    for item in items:
+        p.drawString(100, y_position, f"{item['qty']} {item['uom']} - {item['partnumber']} - {item['description']} - {format_rupiah(item['priceperitem'])} - {format_rupiah(item['price'])}")
+        y_position -= 20
+
+    # Add other details
+    p.drawString(100, y_position, f"Ketersediaan Barang: {ketersediaan}")
+    p.drawString(100, y_position - 20, f"PIC: {pic} - {pic_telp}")
+
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    return buffer
 
 st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
 
@@ -114,7 +142,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     font.name = 'Calibri'
     style.element.rPr.rFonts.set(qn('w:eastAsia'), 'Calibri')
 
-    
     section = doc.sections[0]
     header = section.header
     header_para = header.paragraphs[0]
@@ -149,7 +176,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.add_text(f"Jakarta, {format_tanggal_indonesia(tanggal)}")
 
     p.paragraph_format.space_after = Pt(0)
-    
 
     doc.add_paragraph()
     p = doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
@@ -223,15 +249,15 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     for text in ["\nHormat kami,", "PT. IDS Medical Systems Indonesia"]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
-    
-        doc.add_paragraph()
-        doc.add_paragraph()
-        doc.add_paragraph()
+
+    doc.add_paragraph()
+    doc.add_paragraph()
+    doc.add_paragraph()
 
     for text in ["M. Athur Yassin", "Manager II - Engineering", pic, pic_telp]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
-        
+
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -243,21 +269,18 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     st.text_area("Isi Penawaran", value=preview_text, height=400)
 
     st.download_button(
-        label="\u2B07\uFE0F Download Penawaran",
+        label="\u2B07\uFE0F Download Penawaran (Word)",
         data=buffer,
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-
-
-
-
-
-
-
-
-
-
-
-
+    # Create and download PDF
+    pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, diskon_option, diskon_value, selected_items, ketersediaan, pic, pic_telp)
+    
+    st.download_button(
+        label="\u2B07\uFE0F Download Penawaran (PDF)",
+        data=pdf_buffer,
+        file_name="Penawaran.pdf",
+        mime="application/pdf"
+    )
