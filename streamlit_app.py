@@ -132,7 +132,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     p = doc.add_paragraph()
     p = doc.add_paragraph()
-    p = doc.add_paragraph()
 
     run = p.add_run("Hal: Penawaran Harga")
     run.bold = True
@@ -241,4 +240,5 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
