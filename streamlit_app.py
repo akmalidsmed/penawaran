@@ -129,7 +129,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     for text in ["Kepada Yth", nama_customer, alamat]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
-        run.bold = True
 
     p = doc.add_paragraph()
     p = doc.add_paragraph()
@@ -241,6 +240,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
 
 
