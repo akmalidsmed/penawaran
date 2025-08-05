@@ -48,8 +48,12 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
 
     # Add items table
     y_position = height - 260
+    p.drawString(100, y_position, "Qty | Part Number | Description | Price per item | Total Price")
+    y_position -= 20
+    p.line(100, y_position, width - 100, y_position)  # Draw a line
+
     for item in items:
-        p.drawString(100, y_position, f"{item['qty']} {item['uom']} - {item['partnumber']} - {item['description']} - {format_rupiah(item['priceperitem'])} - {format_rupiah(item['price'])}")
+        p.drawString(100, y_position, f"{item['qty']} {item['uom']} | {item['partnumber']} | {item['description']} | {format_rupiah(item['priceperitem'])} | {format_rupiah(item['price'])}")
         y_position -= 20
 
     # Add summary details
