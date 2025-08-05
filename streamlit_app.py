@@ -144,11 +144,10 @@ pic_telp = pic_options[pic]
 if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc = Document()
 
-    # Set default font ke Calibri
+    # Set default font to Calibri
     style = doc.styles['Normal']
     font = style.font
     font.name = 'Calibri'
-    style.element.rPr.rFonts.set(qn('w:eastAsia'), 'Calibri')
 
     section = doc.sections[0]
     header = section.header
