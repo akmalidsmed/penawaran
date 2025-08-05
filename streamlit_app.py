@@ -220,7 +220,9 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         p = doc.add_paragraph(f"Ketersediaan Barang    : {ketersediaan}")
         p.paragraph_format.space_after = Pt(0)
 
-    for text in ["\nHormat kami,", "PT. IDS Medical Systems Indonesia", "M. Athur Yassin", "Manager II - Engineering", pic, pic_telp]:
+    for text in ["\nHormat kami,", "PT. IDS Medical Systems Indonesia",
+                         p = doc.add_paragraph(text)
+"M. Athur Yassin", "Manager II - Engineering", pic, pic_telp]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
@@ -240,6 +242,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
 
 
