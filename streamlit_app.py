@@ -36,8 +36,12 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Add header
-    p.drawString(100, height - 100, f"Kepada Yth: {nama_customer}")
+    # Add header with bold text
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(100, height - 100, "Kepada Yth: ")
+    p.setFont("Helvetica", 12)
+    p.drawString(200, height - 100, nama_customer)  # Customer name follows "Kepada Yth"
+    p.setFont("Helvetica", 12)  # Reset font to normal for the rest
     p.drawString(100, height - 120, alamat)
     p.drawString(100, height - 140, f"Nomor Penawaran: {nomor_penawaran}")
     p.drawString(100, height - 160, f"Tanggal: {format_tanggal_indonesia(tanggal)}")
@@ -164,13 +168,15 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         except Exception as e:
             st.warning(f"Gagal menambahkan kop surat: {e}")
 
-    for text in ["Kepada Yth", nama_customer, alamat]:
-        p = doc.add_paragraph(text)
-        p.paragraph_format.space_after = Pt(0)
+    # Add "Kepada Yth" and customer name in bold
+    p = doc.add_paragraph()
+    run = p.add_run("Kepada Yth: ")
+    run.bold = True
+    run = p.add_run(nama_customer)
+    run.bold = True
+    doc.add_paragraph(alamat)
 
     p = doc.add_paragraph()
-    p = doc.add_paragraph()
-
     run = p.add_run("Hal: Penawaran Harga")
     run.bold = True
     run.underline = True
