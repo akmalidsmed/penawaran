@@ -212,7 +212,11 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
             cell.paragraphs[0].alignment = 1
             cell.paragraphs[0].paragraph_format.space_after = Pt(0)
 
-    for text in ["\nSyarat dan ketentuan:", "Harga: Sudah termasuk PPN 11%", "Pembayaran: Tunai atau transfer", "Masa berlaku: 2 minggu"]:
+    for text in ["\nSyarat dan ketentuan:", "Harga
+        run.add_tab()
+    run.add_tab()
+    run.add_tab()
+: Sudah termasuk PPN 11%", "Pembayaran: Tunai atau transfer", "Masa berlaku: 2 minggu"]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
@@ -240,6 +244,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
 
 
