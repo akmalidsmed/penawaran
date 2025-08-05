@@ -50,9 +50,20 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     # Add a thank you note
     p.drawString(100, height - 220, "Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item sebagai berikut:")
 
-    # Add items table
+    # Define the starting x positions for each column
+    qty_x = 100
+    partnumber_x = qty_x + 50  # 1 inch for Qty
+    description_x = partnumber_x + 144  # 2 inches for Description
+    priceperitem_x = description_x + 50  # 1 inch for Price per item
+    price_x = priceperitem_x + 50  # 1 inch for Total Price
+
+    # Add items table header
     y_position = height - 260
-    p.drawString(100, y_position, "Qty | Part Number | Description | Price per item | Total Price")
+    p.drawString(qty_x, y_position, "Qty")
+    p.drawString(partnumber_x, y_position, "Part Number")
+    p.drawString(description_x, y_position, "Description")
+    p.drawString(priceperitem_x, y_position, "Price per item")
+    p.drawString(price_x, y_position, "Total Price")
     y_position -= 20
     p.line(100, y_position, width - 100, y_position)  # Draw a line
 
@@ -64,12 +75,12 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
         priceperitem_text = format_rupiah(item['priceperitem'])
         price_text = format_rupiah(item['price'])
         
-        # Calculate the starting position for center alignment
-        p.drawString(100, y_position, qty_text)
-        p.drawString(200, y_position, partnumber_text)
-        p.drawString(300, y_position, description_text)
-        p.drawString(400, y_position, priceperitem_text)
-        p.drawString(500, y_position, price_text)
+        # Draw each item in the respective column positions
+        p.drawString(qty_x, y_position, qty_text)
+        p.drawString(partnumber_x, y_position, partnumber_text)
+        p.drawString(description_x, y_position, description_text)
+        p.drawString(priceperitem_x, y_position, priceperitem_text)
+        p.drawString(price_x, y_position, price_text)
         
         y_position -= 20
 
@@ -221,6 +232,13 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     hdr_cells[3].text = 'Price per item'
     hdr_cells[4].text = 'Total Price'
 
+    # Set the width of the columns
+    table.columns[0].width = Inches(1)  # Qty column
+    table.columns[1].width = Inches(1)  # Part Number column
+    table.columns[2].width = Inches(2)  # Description column
+    table.columns[3].width = Inches(1)  # Price per item column
+    table.columns[4].width = Inches(1)  # Total Price column
+
     subtotal1 = 0
     for i, item in enumerate(items):
         row_cells = table.add_row().cells
@@ -294,6 +312,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.save(buffer)
     buffer.seek(0)
 
+
     # Create PDF
     pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp)
 
@@ -318,3 +337,4 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.pdf",
         mime="application/pdf"
     )
+
