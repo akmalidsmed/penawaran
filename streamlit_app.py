@@ -57,7 +57,20 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     p.line(100, y_position, width - 100, y_position)  # Draw a line
 
     for item in items:
-        p.drawString(100, y_position, f"{item['qty']} {item['uom']} | {item['partnumber']} | {item['description']} | {format_rupiah(item['priceperitem'])} | {format_rupiah(item['price'])}")
+        # Center align the text for each column
+        qty_text = f"{item['qty']} {item['uom']}"
+        partnumber_text = item['partnumber']
+        description_text = item['description']
+        priceperitem_text = format_rupiah(item['priceperitem'])
+        price_text = format_rupiah(item['price'])
+        
+        # Calculate the starting position for center alignment
+        p.drawString(100, y_position, qty_text)
+        p.drawString(200, y_position, partnumber_text)
+        p.drawString(300, y_position, description_text)
+        p.drawString(400, y_position, priceperitem_text)
+        p.drawString(500, y_position, price_text)
+        
         y_position -= 20
 
     # Add summary details
@@ -217,9 +230,10 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         row_cells[3].text = format_rupiah(item['priceperitem'])
         row_cells[4].text = format_rupiah(item['price'])
         subtotal1 += item['price']
+        
+        # Center align each cell
         for cell in row_cells:
-            cell.paragraphs[0].alignment = 1
-            cell.paragraphs[0].paragraph_format.space_after = Pt(0)
+            cell.paragraphs[0].alignment = 1  # Center alignment
 
     price_diskon = 0
     if diskon_option != "Tanpa diskon" and selected_items:
