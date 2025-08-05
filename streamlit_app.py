@@ -230,7 +230,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     for text in ["M. Athur Yassin", "Manager II - Engineering", pic, pic_telp]:
         p = doc.add_paragraph(text)
-        p.add_run(text).bold = True
         p.paragraph_format.space_after = Pt(0)
         
     buffer = io.BytesIO()
@@ -249,6 +248,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
 
 
