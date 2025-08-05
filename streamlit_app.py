@@ -3,13 +3,18 @@ from datetime import date
 import io
 from docx import Document
 from docx.shared import Inches, Pt
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.enum.shape import WD_INLINE_SHAPE
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 import os
-from PIL import Image
+
+# Try to import reportlab with fallback installation
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+except ImportError:
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
 
 def format_rupiah(angka):
     return "Rp. {:,.0f}".format(angka).replace(",", ".")
@@ -26,25 +31,28 @@ def format_tanggal_indonesia(tanggal):
     tahun = tanggal.year
     return f"{hari} {bulan} {tahun}"
 
-def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, diskon_option, diskon_value, selected_items, ketersediaan, pic, pic_telp):
+def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Add content to PDF
+    # Add header
     p.drawString(100, height - 100, f"Kepada Yth: {nama_customer}")
     p.drawString(100, height - 120, alamat)
     p.drawString(100, height - 140, f"Nomor Penawaran: {nomor_penawaran}")
     p.drawString(100, height - 160, f"Tanggal: {format_tanggal_indonesia(tanggal)}")
     p.drawString(100, height - 180, f"Unit: {nama_unit}")
 
-    # Add items to PDF
-    y_position = height - 220
+    # Add a thank you note
+    p.drawString(100, height - 220, "Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item sebagai berikut:")
+
+    # Add items table
+    y_position = height - 260
     for item in items:
         p.drawString(100, y_position, f"{item['qty']} {item['uom']} - {item['partnumber']} - {item['description']} - {format_rupiah(item['priceperitem'])} - {format_rupiah(item['price'])}")
         y_position -= 20
 
-    # Add other details
+    # Add summary details
     p.drawString(100, y_position, f"Ketersediaan Barang: {ketersediaan}")
     p.drawString(100, y_position - 20, f"PIC: {pic} - {pic_telp}")
 
@@ -194,7 +202,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     subtotal1 = 0
     for i, item in enumerate(items):
         row_cells = table.add_row().cells
-        row_cells[0].text = f"{item['qty']}{item['uom']}"
+        row_cells[0].text = f"{item['qty']} {item['uom']}"
         row_cells[1].text = item['partnumber']
         row_cells[2].text = item['description']
         row_cells[3].text = format_rupiah(item['priceperitem'])
@@ -258,16 +266,22 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
+    # Save Word document to buffer
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
 
+    # Create PDF
+    pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp)
+
+    # Preview Word document
     preview_doc = Document(buffer)
     preview_text = "\n".join([para.text for para in preview_doc.paragraphs])
 
     st.markdown("### Preview Penawaran")
     st.text_area("Isi Penawaran", value=preview_text, height=400)
 
+    # Download buttons
     st.download_button(
         label="\u2B07\uFE0F Download Penawaran (Word)",
         data=buffer,
@@ -275,9 +289,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-    # Create and download PDF
-    pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, diskon_option, diskon_value, selected_items, ketersediaan, pic, pic_telp)
-    
     st.download_button(
         label="\u2B07\uFE0F Download Penawaran (PDF)",
         data=pdf_buffer,
