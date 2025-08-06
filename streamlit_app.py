@@ -312,7 +312,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     doc.save(buffer)
     buffer.seek(0)
 
-
     # Create PDF
     pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp)
 
@@ -337,4 +336,3 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.pdf",
         mime="application/pdf"
     )
-
