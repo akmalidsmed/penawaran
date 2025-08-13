@@ -40,24 +40,21 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     p.setFont("Helvetica-Bold", 12)
     p.drawString(100, height - 100, "Kepada Yth: ")
     p.setFont("Helvetica", 12)
-    p.drawString(200, height - 100, nama_customer)  # Customer name follows "Kepada Yth"
-    p.setFont("Helvetica", 12)  # Reset font to normal for the rest
+    p.drawString(200, height - 100, nama_customer)
+    p.setFont("Helvetica", 12)
     p.drawString(100, height - 120, alamat)
     p.drawString(100, height - 140, f"Nomor Penawaran: {nomor_penawaran}")
     p.drawString(100, height - 160, f"Tanggal: {format_tanggal_indonesia(tanggal)}")
     p.drawString(100, height - 180, f"Unit: {nama_unit}")
 
-    # Add a thank you note
     p.drawString(100, height - 220, "Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item sebagai berikut:")
 
-    # Define the starting x positions for each column
     qty_x = 100
-    partnumber_x = qty_x + 50  # 1 inch for Qty
-    description_x = partnumber_x + 144  # 2 inches for Description
-    priceperitem_x = description_x + 50  # 1 inch for Price per item
-    price_x = priceperitem_x + 50  # 1 inch for Total Price
+    partnumber_x = qty_x + 50
+    description_x = partnumber_x + 144
+    priceperitem_x = description_x + 50
+    price_x = priceperitem_x + 50
 
-    # Add items table header
     y_position = height - 260
     p.drawString(qty_x, y_position, "Qty")
     p.drawString(partnumber_x, y_position, "Part Number")
@@ -65,26 +62,22 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     p.drawString(priceperitem_x, y_position, "Price per item")
     p.drawString(price_x, y_position, "Total Price")
     y_position -= 20
-    p.line(100, y_position, width - 100, y_position)  # Draw a line
+    p.line(100, y_position, width - 100, y_position)
 
     for item in items:
-        # Center align the text for each column
         qty_text = f"{item['qty']} {item['uom']}"
         partnumber_text = item['partnumber']
         description_text = item['description']
         priceperitem_text = format_rupiah(item['priceperitem'])
         price_text = format_rupiah(item['price'])
         
-        # Draw each item in the respective column positions
         p.drawString(qty_x, y_position, qty_text)
         p.drawString(partnumber_x, y_position, partnumber_text)
         p.drawString(description_x, y_position, description_text)
         p.drawString(priceperitem_x, y_position, priceperitem_text)
         p.drawString(price_x, y_position, price_text)
-        
         y_position -= 20
 
-    # Add summary details
     p.drawString(100, y_position, f"Ketersediaan Barang: {ketersediaan}")
     p.drawString(100, y_position - 20, f"PIC: {pic} - {pic_telp}")
 
@@ -93,6 +86,7 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     buffer.seek(0)
     return buffer
 
+# Streamlit UI
 st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
 
 pic_options = {
@@ -192,7 +186,11 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         except Exception as e:
             st.warning(f"Gagal menambahkan kop surat: {e}")
 
-    # Add "Kepada Yth" and customer name in bold
+    # Generate nama file
+    deskripsi_item = items[0]['description'][:30].replace("/", "-") if items and items[0]['description'] else "Penawaran"
+    nama_file = f"{nomor_penawaran}_{nama_customer.replace(' ', '_')}-{nama_unit.replace(' ', '_')}_{deskripsi_item.replace(' ', '_')}.docx"
+    
+    # Konten dokumen
     p = doc.add_paragraph()
     run = p.add_run("Kepada Yth: ")
     run.bold = True
@@ -208,6 +206,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     p = doc.add_paragraph()
     run = p.add_run(f"No: {nomor_penawaran}/JKT/SRV/AA/25")
+    run.add_tab()
     run.add_tab()
     run.add_tab()
     run.add_tab()
@@ -231,12 +230,11 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     hdr_cells[3].text = 'Price per item'
     hdr_cells[4].text = 'Total Price'
 
-    # Set the width of the columns
-    table.columns[0].width = Inches(1)  # Qty column
-    table.columns[1].width = Inches(1)  # Part Number column
-    table.columns[2].width = Inches(2)  # Description column
-    table.columns[3].width = Inches(1)  # Price per item column
-    table.columns[4].width = Inches(1)  # Total Price column
+    table.columns[0].width = Inches(1)
+    table.columns[1].width = Inches(1)
+    table.columns[2].width = Inches(2)
+    table.columns[3].width = Inches(1)
+    table.columns[4].width = Inches(1)
 
     subtotal1 = 0
     for i, item in enumerate(items):
@@ -248,9 +246,8 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         row_cells[4].text = format_rupiah(item['price'])
         subtotal1 += item['price']
         
-        # Center align each cell
         for cell in row_cells:
-            cell.paragraphs[0].alignment = 1  # Center alignment
+            cell.paragraphs[0].alignment = 1
 
     price_diskon = 0
     if diskon_option != "Tanpa diskon" and selected_items:
@@ -306,7 +303,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
-    # Save Word document to buffer
+    # Save dokumen
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -314,7 +311,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     # Create PDF
     pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp)
 
-    # Preview Word document
+    # Preview
     preview_doc = Document(buffer)
     preview_text = "\n".join([para.text for para in preview_doc.paragraphs])
 
@@ -325,14 +322,13 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     st.download_button(
         label="\u2B07\uFE0F Download Penawaran (Word)",
         data=buffer,
-        file_name="Penawaran.docx",
+        file_name=nama_file,
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
     st.download_button(
         label="\u2B07\uFE0F Download Penawaran (PDF)",
         data=pdf_buffer,
-        file_name="Penawaran.pdf",
+        file_name=nama_file.replace(".docx", ".pdf"),
         mime="application/pdf"
     )
-
