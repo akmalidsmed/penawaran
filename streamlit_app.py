@@ -213,7 +213,6 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.add_tab()
     run.add_tab()
     run.add_tab()
-    run.add_tab()
     run.add_text(f"Jakarta, {format_tanggal_indonesia(tanggal)}")
 
     p.paragraph_format.space_after = Pt(0)
@@ -336,3 +335,4 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         file_name="Penawaran.pdf",
         mime="application/pdf"
     )
+
