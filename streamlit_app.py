@@ -9,88 +9,292 @@ import os
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Table,
+        TableStyle,
+        Paragraph,
+        Spacer,
+    )
+    from reportlab.lib.units import cm
+    from reportlab.lib.pagesizes import A4
 except ImportError:
     import subprocess
     import sys
+
     subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Table,
+        TableStyle,
+        Paragraph,
+        Spacer,
+    )
+    from reportlab.lib.units import cm
+    from reportlab.lib.pagesizes import A4
+
 
 def format_rupiah(angka):
     return "Rp. {:,.0f}".format(angka).replace(",", ".")
 
+
 def format_tanggal_indonesia(tanggal):
     bulan_dict = {
-        "January": "Januari", "February": "Februari", "March": "Maret",
-        "April": "April", "May": "Mei", "June": "Juni",
-        "July": "Juli", "August": "Agustus", "September": "September",
-        "October": "Oktober", "November": "November", "December": "Desember"
+        "January": "Januari",
+        "February": "Februari",
+        "March": "Maret",
+        "April": "April",
+        "May": "Mei",
+        "June": "Juni",
+        "July": "Juli",
+        "August": "Agustus",
+        "September": "September",
+        "October": "Oktober",
+        "November": "November",
+        "December": "Desember",
     }
     hari = tanggal.day
-    bulan = bulan_dict[tanggal.strftime('%B')]
+    bulan = bulan_dict[tanggal.strftime("%B")]
     tahun = tanggal.year
     return f"{hari} {bulan} {tahun}"
 
-def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp):
+
+def create_pdf(
+    nama_customer,
+    alamat,
+    nomor_penawaran,
+    tanggal,
+    nama_unit,
+    items,
+    ketersediaan,
+    pic,
+    pic_telp,
+    subtotal1,
+    subtotal2,
+    ppn,
+    total,
+    diskon_option,
+    diskon_value,
+    selected_items,
+    price_diskon,
+):
     buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
+
+    styles = getSampleStyleSheet()
+    style_normal = styles["Normal"]
+    style_bold = ParagraphStyle(
+        "Bold",
+        parent=style_normal,
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=13,
+    )
+
+    story = []
 
     # Header
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(100, height - 100, "Kepada Yth: ")
-    p.setFont("Helvetica", 12)
-    p.drawString(200, height - 100, nama_customer)
-    p.drawString(100, height - 120, alamat)
-    p.drawString(100, height - 140, f"Nomor Penawaran: {nomor_penawaran}")
-    p.drawString(100, height - 160, f"Tanggal: {format_tanggal_indonesia(tanggal)}")
-    p.drawString(100, height - 180, f"Unit: {nama_unit}")
+    story.append(Paragraph("Kepada Yth:", style_bold))
+    story.append(Paragraph(nama_customer or "-", style_bold))
+    story.append(
+        Paragraph(
+            alamat.replace("\n", "<br/>") if alamat else "-",
+            style_normal,
+        )
+    )
+    story.append(Spacer(1, 0.4 * cm))
 
-    p.drawString(100, height - 220,
-                 "Terima kasih atas kesempatan yang telah diberikan kepada kami. "
-                 "Bersama ini kami mengajukan penawaran harga item sebagai berikut:")
+    story.append(
+        Paragraph(f"Nomor Penawaran: {nomor_penawaran or '-'}", style_normal)
+    )
+    story.append(
+        Paragraph(f"Tanggal: {format_tanggal_indonesia(tanggal)}", style_normal)
+    )
+    story.append(Paragraph(f"Unit: {nama_unit or '-'}", style_normal))
+    story.append(Spacer(1, 0.6 * cm))
 
-    qty_x = 100
-    partnumber_x = qty_x + 50
-    description_x = partnumber_x + 144
-    priceperitem_x = description_x + 50
-    price_x = priceperitem_x + 50
+    intro_text = (
+        "Terima kasih atas kesempatan yang telah diberikan kepada kami. "
+        "Bersama ini kami mengajukan penawaran harga item sebagai berikut:"
+    )
+    story.append(Paragraph(intro_text, style_normal))
+    story.append(Spacer(1, 0.4 * cm))
 
-    y_position = height - 260
-    p.drawString(qty_x, y_position, "Qty")
-    p.drawString(partnumber_x, y_position, "Part Number")
-    p.drawString(description_x, y_position, "Description")
-    p.drawString(priceperitem_x, y_position, "Price per item")
-    p.drawString(price_x, y_position, "Total Price")
-    y_position -= 20
-    p.line(100, y_position, width - 100, y_position)
+    # Tabel item
+    data_table = [
+        [
+            Paragraph("Qty", style_bold),
+            Paragraph("Part Number", style_bold),
+            Paragraph("Description", style_bold),
+            Paragraph("Price per item", style_bold),
+            Paragraph("Total Price", style_bold),
+        ]
+    ]
 
     for item in items:
-        qty_text = f"{item['qty']} {item['uom']}"
-        partnumber_text = item['partnumber']
-        description_text = item['description']
-        priceperitem_text = format_rupiah(item['priceperitem'])
-        price_text = format_rupiah(item['price'])
-        
-        p.drawString(qty_x, y_position, qty_text)
-        p.drawString(partnumber_x, y_position, partnumber_text)
-        p.drawString(description_x, y_position, description_text)
-        p.drawString(priceperitem_x, y_position, priceperitem_text)
-        p.drawString(price_x, y_position, price_text)
-        y_position -= 20
+        qty_text = f"{item['qty']} {item['uom']}".strip()
+        partnumber_text = item["partnumber"] or ""
+        description_text = item["description"] or ""
+        priceperitem_text = format_rupiah(item["priceperitem"])
+        price_text = format_rupiah(item["price"])
 
-    p.drawString(100, y_position, f"Ketersediaan Barang: {ketersediaan}")
-    p.drawString(100, y_position - 20, f"PIC: {pic} - {pic_telp}")
+        data_table.append(
+            [
+                Paragraph(qty_text, style_normal),
+                Paragraph(partnumber_text, style_normal),
+                Paragraph(description_text, style_normal),
+                Paragraph(priceperitem_text, style_normal),
+                Paragraph(price_text, style_normal),
+            ]
+        )
 
-    p.showPage()
-    p.save()
+    table = Table(
+        data_table,
+        colWidths=[2 * cm, 3 * cm, 7 * cm, 3 * cm, 3 * cm],
+        repeatRows=1,
+    )
+
+    table.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Qty
+                ("ALIGN", (3, 1), (-1, -1), "RIGHT"),  # Harga & Total
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ]
+        )
+    )
+
+    story.append(table)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # Ringkasan harga (Sub Total, Diskon, PPN, Total)
+    summary_data = []
+
+    summary_data.append(
+        [
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("Sub Total I", style_bold),
+            Paragraph(format_rupiah(subtotal1), style_normal),
+        ]
+    )
+
+    if price_diskon > 0:
+        if diskon_option == "Diskon persentase (%)":
+            label_diskon = f"Diskon {round(diskon_value)}%"
+        else:
+            label_diskon = "Diskon (Rp)"
+
+        if selected_items:
+            label_diskon += " (" + ", ".join([f"Item {i+1}" for i in selected_items]) + ")"
+
+        summary_data.append(
+            [
+                Paragraph("", style_normal),
+                Paragraph("", style_normal),
+                Paragraph("", style_normal),
+                Paragraph(label_diskon, style_normal),
+                Paragraph(f"-{format_rupiah(price_diskon)}", style_normal),
+            ]
+        )
+
+    summary_data.append(
+        [
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("Sub Total II", style_bold),
+            Paragraph(format_rupiah(subtotal2), style_normal),
+        ]
+    )
+
+    summary_data.append(
+        [
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("PPN 11%", style_bold),
+            Paragraph(format_rupiah(ppn), style_normal),
+        ]
+    )
+
+    summary_data.append(
+        [
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("", style_normal),
+            Paragraph("TOTAL", style_bold),
+            Paragraph(format_rupiah(total), style_bold),
+        ]
+    )
+
+    summary_table = Table(
+        summary_data,
+        colWidths=[2 * cm, 3 * cm, 7 * cm, 3 * cm, 3 * cm],
+    )
+
+    summary_table.setStyle(
+        TableStyle(
+            [
+                ("GRID", (3, 0), (-1, -1), 0.5, colors.black),
+                ("ALIGN", (3, 0), (-1, -1), "RIGHT"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ]
+        )
+    )
+
+    story.append(summary_table)
+    story.append(Spacer(1, 0.6 * cm))
+
+    # Ketersediaan & PIC
+    if ketersediaan and ketersediaan != "Jangan tampilkan":
+        story.append(
+            Paragraph(f"Ketersediaan Barang: {ketersediaan}", style_normal)
+        )
+    story.append(
+        Paragraph(f"PIC: {pic} - {pic_telp}", style_normal)
+    )
+
+    story.append(Spacer(1, 0.6 * cm))
+
+    story.append(Paragraph("Hormat kami,", style_normal))
+    story.append(Paragraph("PT. IDS Medical Systems Indonesia", style_normal))
+    story.append(Spacer(1, 1.5 * cm))
+    story.append(Paragraph("M. Athur Yassin", style_normal))
+    story.append(Paragraph("Manager II - Engineering", style_normal))
+
+    doc.build(story)
     buffer.seek(0)
     return buffer
+
 
 # =============================
 #   STATE & CHAT-BASED INPUT
 # =============================
-st.markdown("<h1 style='text-align: center;'>Penawaran Harga (Mode Chat)</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<h1 style='text-align: center;'>Penawaran Harga (Mode Chat)</h1>",
+    unsafe_allow_html=True,
+)
 
 # Inisialisasi session_state
 if "parsed_data" not in st.session_state:
@@ -105,19 +309,19 @@ if "parsed_data" not in st.session_state:
         "diskon_value": 0,
         "selected_items": [],
         "ketersediaan": "Jangan tampilkan",
-        "pic": "Muhammad Lukmansyah"
+        "pic": "Muhammad Lukmansyah",
     }
 
 pic_options = {
     "Muhammad Lukmansyah": "0821 2291 1020",
     "Rully Candra": "0813 1515 4142",
     "Denny Firmansyah": "0821 1408 0011",
-    "Alamas Ramadhan": "0857 7376 2820"
+    "Alamas Ramadhan": "0857 7376 2820",
 }
 
 st.write("Tulis instruksi penawaran di bawah ini (seperti ngobrol):")
 st.code(
-"""Contoh:
+    """Contoh:
 Buat penawaran untuk:
 Customer: RS Harapan Sejahtera
 Alamat: Jl. Merdeka No. 10, Jakarta
@@ -136,10 +340,13 @@ PIC: Muhammad Lukmansyah
     language="text",
 )
 
-chat_input = st.text_area("Chat Penawaran", height=250, help="Tulis detail penawaran secara bebas.")
+chat_input = st.text_area(
+    "Chat Penawaran", height=250, help="Tulis detail penawaran secara bebas."
+)
 
 if st.button("💬 Proses Chat"):
     import re
+
     text = chat_input
 
     def get_after(label):
@@ -163,7 +370,7 @@ if st.button("💬 Proses Chat"):
             d, m, y = map(int, match.groups())
             try:
                 parsed_date = date(y, m, d)
-            except:
+            except Exception:
                 parsed_date = date.today()
 
     # Diskon
@@ -190,7 +397,11 @@ if st.button("💬 Proses Chat"):
     ketersediaan = "Jangan tampilkan"
     for line in text.splitlines():
         lower_line = line.lower()
-        if "ketersediaan" in lower_line or "ready stock" in lower_line or "indent" in lower_line:
+        if (
+            "ketersediaan" in lower_line
+            or "ready stock" in lower_line
+            or "indent" in lower_line
+        ):
             if "ready stock" in lower_line:
                 ketersediaan = "Ready stock"
             elif "indent" in lower_line:
@@ -213,8 +424,12 @@ if st.button("💬 Proses Chat"):
         if re.match(r"\s*\d+\)", line.strip()):
             qty_match = re.search(r"qty\s+(\d+)", line, re.IGNORECASE)
             uom_match = re.search(r"qty\s+\d+\s+(\w+)", line, re.IGNORECASE)
-            pn_match = re.search(r"part number\s*([A-Za-z0-9\-\_/]+)", line, re.IGNORECASE)
-            desc_match = re.search(r"description\s*(.*?),\s*harga", line, re.IGNORECASE)
+            pn_match = re.search(
+                r"part number\s*([A-Za-z0-9\-\_/]+)", line, re.IGNORECASE
+            )
+            desc_match = re.search(
+                r"description\s*(.*?),\s*harga", line, re.IGNORECASE
+            )
             harga_match = re.search(r"harga\s*([\d\.]+)", line, re.IGNORECASE)
 
             qty = qty_match.group(1) if qty_match else "1"
@@ -226,18 +441,20 @@ if st.button("💬 Proses Chat"):
                 h_str = harga_match.group(1).replace(".", "")
                 try:
                     priceperitem = int(h_str)
-                except:
+                except Exception:
                     priceperitem = 0
 
             total = float(qty) * priceperitem
-            items.append({
-                "qty": qty,
-                "uom": uom,
-                "partnumber": partnumber,
-                "description": description,
-                "priceperitem": priceperitem,
-                "price": total
-            })
+            items.append(
+                {
+                    "qty": qty,
+                    "uom": uom,
+                    "partnumber": partnumber,
+                    "description": description,
+                    "priceperitem": priceperitem,
+                    "price": total,
+                }
+            )
 
     # Diskon utk semua item
     if selected_items == "semua":
@@ -260,7 +477,9 @@ if st.button("💬 Proses Chat"):
         "pic": pic,
     }
 
-    st.success("Chat berhasil diproses. Silakan cek dan koreksi data di bawah sebelum generate dokumen.")
+    st.success(
+        "Chat berhasil diproses. Silakan cek dan koreksi data di bawah sebelum generate dokumen."
+    )
 
 # =============================
 #  REVIEW & GENERATE DOKUMEN
@@ -271,12 +490,18 @@ st.markdown("### Data Penawaran (hasil dari chat, bisa dikoreksi)")
 
 col_a, col_b = st.columns(2)
 with col_a:
-    data["nama_customer"] = st.text_input("Nama Customer", value=data["nama_customer"])
+    data["nama_customer"] = st.text_input(
+        "Nama Customer", value=data["nama_customer"]
+    )
     data["alamat"] = st.text_area("Alamat Customer", value=data["alamat"])
-    data["nomor_penawaran"] = st.text_input("Nomor Penawaran", value=data["nomor_penawaran"])
+    data["nomor_penawaran"] = st.text_input(
+        "Nomor Penawaran", value=data["nomor_penawaran"]
+    )
 with col_b:
     data["tanggal"] = st.date_input("Tanggal", value=data["tanggal"])
-    data["nama_unit"] = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)", value=data["nama_unit"])
+    data["nama_unit"] = st.text_input(
+        "Nama Unit (Tipe dan Serial Number jika ada)", value=data["nama_unit"]
+    )
 
 st.markdown("#### Item yang ditawarkan")
 for i, item in enumerate(data["items"]):
@@ -294,7 +519,11 @@ st.markdown("#### Diskon")
 diskon_option = st.radio(
     "Jenis Diskon",
     ["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"],
-    index=["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"].index(data["diskon_option"])
+    index=[
+        "Tanpa diskon",
+        "Diskon persentase (%)",
+        "Diskon nominal (Rp)",
+    ].index(data["diskon_option"]),
 )
 diskon_value = 0
 selected_items = []
@@ -303,7 +532,9 @@ jumlah_item = len(data["items"])
 
 if diskon_option != "Tanpa diskon" and jumlah_item > 0:
     if jumlah_item > 1:
-        diskon_scope = st.radio("Diskon berlaku untuk:", ["Semua item", "Pilih item tertentu"], index=0)
+        diskon_scope = st.radio(
+            "Diskon berlaku untuk:", ["Semua item", "Pilih item tertentu"], index=0
+        )
         if diskon_scope == "Pilih item tertentu":
             st.markdown("**Pilih item yang dapat diskon:**")
             cols = st.columns(3)
@@ -317,9 +548,20 @@ if diskon_option != "Tanpa diskon" and jumlah_item > 0:
         selected_items = [0]
 
     if diskon_option == "Diskon persentase (%)":
-        diskon_value = st.number_input("Besar diskon (%)", min_value=0, max_value=100, value=data["diskon_value"], format="%d")
+        diskon_value = st.number_input(
+            "Besar diskon (%)",
+            min_value=0,
+            max_value=100,
+            value=data["diskon_value"],
+            format="%d",
+        )
     else:
-        diskon_value = st.number_input("Besar diskon (Rp)", min_value=0, value=data["diskon_value"], format="%d")
+        diskon_value = st.number_input(
+            "Besar diskon (Rp)",
+            min_value=0,
+            value=data["diskon_value"],
+            format="%d",
+        )
 else:
     diskon_value = 0
     selected_items = []
@@ -329,16 +571,25 @@ data["diskon_value"] = diskon_value
 data["selected_items"] = selected_items
 
 # Ketersediaan & PIC
-opsi_ketersediaan = ["Jangan tampilkan", "Ready stock", "Ready jika persediaan masih ada", "Indent"]
+opsi_ketersediaan = [
+    "Jangan tampilkan",
+    "Ready stock",
+    "Ready jika persediaan masih ada",
+    "Indent",
+]
 data["ketersediaan"] = st.selectbox(
     "Ketersediaan Barang",
     opsi_ketersediaan,
-    index=opsi_ketersediaan.index(data["ketersediaan"]) if data["ketersediaan"] in opsi_ketersediaan else 0
+    index=opsi_ketersediaan.index(data["ketersediaan"])
+    if data["ketersediaan"] in opsi_ketersediaan
+    else 0,
 )
 data["pic"] = st.selectbox(
     "Nama PIC",
     list(pic_options.keys()),
-    index=list(pic_options.keys()).index(data["pic"]) if data["pic"] in pic_options else 0
+    index=list(pic_options.keys()).index(data["pic"])
+    if data["pic"] in pic_options
+    else 0,
 )
 pic_telp = pic_options[data["pic"]]
 
@@ -361,9 +612,9 @@ if st.button("📥 Generate Dokumen Penawaran"):
     doc = Document()
 
     # Default font
-    style = doc.styles['Normal']
+    style = doc.styles["Normal"]
     font = style.font
-    font.name = 'Calibri'
+    font.name = "Calibri"
 
     section = doc.sections[0]
     header = section.header
@@ -377,11 +628,18 @@ if st.button("📥 Generate Dokumen Penawaran"):
         except Exception as e:
             st.warning(f"Gagal menambahkan kop surat: {e}")
 
-    deskripsi_item = items[0]['description'][:30].replace("/", "-") if items and items[0]['description'] else "Penawaran"
+    deskripsi_item = (
+        items[0]["description"][:30].replace("/", "-")
+        if items and items[0]["description"]
+        else "Penawaran"
+    )
     safe_customer = (nama_customer or "Customer").replace(" ", "_")
     safe_unit = (nama_unit or "Unit").replace(" ", "_")
-    nama_file = f"{nomor_penawaran}_{safe_customer}-{safe_unit}_{deskripsi_item.replace(' ', '_')}.docx"
-    
+    nama_file = (
+        f"{nomor_penawaran}_{safe_customer}-{safe_unit}_"
+        f"{deskripsi_item.replace(' ', '_')}.docx"
+    )
+
     # Konten dokumen
     p = doc.add_paragraph()
     run = p.add_run("Kepada Yth: ")
@@ -416,13 +674,13 @@ if st.button("📥 Generate Dokumen Penawaran"):
     p.paragraph_format.space_before = Pt(0)
 
     table = doc.add_table(rows=1, cols=5)
-    table.style = 'Table Grid'
+    table.style = "Table Grid"
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Qty'
-    hdr_cells[1].text = 'Part Number'
-    hdr_cells[2].text = 'Description'
-    hdr_cells[3].text = 'Price per item'
-    hdr_cells[4].text = 'Total Price'
+    hdr_cells[0].text = "Qty"
+    hdr_cells[1].text = "Part Number"
+    hdr_cells[2].text = "Description"
+    hdr_cells[3].text = "Price per item"
+    hdr_cells[4].text = "Total Price"
 
     table.columns[0].width = Inches(1)
     table.columns[1].width = Inches(1)
@@ -434,12 +692,12 @@ if st.button("📥 Generate Dokumen Penawaran"):
     for i, item in enumerate(items):
         row_cells = table.add_row().cells
         row_cells[0].text = f"{item['qty']} {item['uom']}"
-        row_cells[1].text = item['partnumber']
-        row_cells[2].text = item['description']
-        row_cells[3].text = format_rupiah(item['priceperitem'])
-        row_cells[4].text = format_rupiah(item['price'])
-        subtotal1 += item['price']
-        
+        row_cells[1].text = item["partnumber"]
+        row_cells[2].text = item["description"]
+        row_cells[3].text = format_rupiah(item["priceperitem"])
+        row_cells[4].text = format_rupiah(item["price"])
+        subtotal1 += item["price"]
+
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1
 
@@ -448,19 +706,26 @@ if st.button("📥 Generate Dokumen Penawaran"):
     if diskon_option != "Tanpa diskon" and selected_items:
         if diskon_option == "Diskon persentase (%)":
             for i in selected_items:
-                price_diskon += items[i]['price'] * (diskon_value / 100)
+                price_diskon += items[i]["price"] * (diskon_value / 100)
         else:
-            total_terdiskon = sum(items[i]['price'] for i in selected_items)
+            total_terdiskon = sum(items[i]["price"] for i in selected_items)
             if total_terdiskon > 0:
                 for i in selected_items:
-                    price_diskon += (items[i]['price'] / total_terdiskon) * diskon_value
+                    price_diskon += (
+                        items[i]["price"] / total_terdiskon
+                    ) * diskon_value
         price_diskon = round(price_diskon)
 
     subtotal2 = subtotal1 - price_diskon
     ppn = subtotal2 * 0.11
     total = subtotal2 + ppn
 
-    for label, value in [("Sub Total I", subtotal1), ("Sub Total II", subtotal2), ("PPN 11%", ppn), ("TOTAL", total)]:
+    for label, value in [
+        ("Sub Total I", subtotal1),
+        ("Sub Total II", subtotal2),
+        ("PPN 11%", ppn),
+        ("TOTAL", total),
+    ]:
         row = table.add_row().cells
         row[3].text = label
         row[4].text = format_rupiah(value)
@@ -471,9 +736,15 @@ if st.button("📥 Generate Dokumen Penawaran"):
     if price_diskon > 0:
         row_disc = table.add_row().cells
         if diskon_option == "Diskon persentase (%)":
-            row_disc[3].text = f"Diskon {round(diskon_value)}% ({', '.join(['Item ' + str(i+1) for i in selected_items])})"
+            row_disc[3].text = (
+                f"Diskon {round(diskon_value)}% ("
+                f"{', '.join(['Item ' + str(i+1) for i in selected_items])})"
+            )
         else:
-            row_disc[3].text = f"Diskon (Rp) ({', '.join(['Item ' + str(i+1) for i in selected_items])})"
+            row_disc[3].text = (
+                f"Diskon (Rp) ("
+                f"{', '.join(['Item ' + str(i+1) for i in selected_items])})"
+            )
         row_disc[4].text = f"-{format_rupiah(price_diskon)}"
         for cell in row_disc:
             cell.paragraphs[0].alignment = 1
@@ -483,7 +754,7 @@ if st.button("📥 Generate Dokumen Penawaran"):
         "\nSyarat dan ketentuan:",
         "Harga                               : Sudah termasuk PPN 11%",
         "Pembayaran                   : Tunai atau transfer",
-        "Masa berlaku                 : 2 minggu"
+        "Masa berlaku                 : 2 minggu",
     ]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
@@ -504,12 +775,12 @@ if st.button("📥 Generate Dokumen Penawaran"):
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
-    # Save dokumen
+    # Save dokumen Word
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
 
-    # Create PDF
+    # Create PDF (pakai layout rapi)
     pdf_buffer = create_pdf(
         nama_customer,
         alamat,
@@ -519,7 +790,15 @@ if st.button("📥 Generate Dokumen Penawaran"):
         items,
         ketersediaan,
         pic,
-        pic_telp
+        pic_telp,
+        subtotal1,
+        subtotal2,
+        ppn,
+        total,
+        diskon_option,
+        diskon_value,
+        selected_items,
+        price_diskon,
     )
 
     # Preview
@@ -534,12 +813,12 @@ if st.button("📥 Generate Dokumen Penawaran"):
         label="⬇️ Download Penawaran (Word)",
         data=buffer,
         file_name=nama_file,
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 
     st.download_button(
         label="⬇️ Download Penawaran (PDF)",
         data=pdf_buffer,
         file_name=nama_file.replace(".docx", ".pdf"),
-        mime="application/pdf"
+        mime="application/pdf",
     )
