@@ -827,3 +827,8 @@ if st.button("📥 Generate Dokumen Penawaran"):
     )
 
     st.download_button(
+        label="⬇️ Download Penawaran (PDF)",
+        data=pdf_buffer,
+        file_name=nama_file.replace(".docx", ".pdf"),
+        mime="application/pdf",
+    )
