@@ -62,11 +62,8 @@ def format_tanggal_indonesia(tanggal):
 
 
 def parse_indo_date(tgl_str: str) -> date:
-    """
-    Mencoba parse '18 November 2025' atau '18-11-2025', '18/11/2025'
-    """
+    """Mencoba parse '18 November 2025' atau '18-11-2025', '18/11/2025'."""
     tgl_str = tgl_str.strip()
-    # Coba format dd Month yyyy (Indonesia/Inggris)
     bulan_id = {
         "januari": 1,
         "februari": 2,
@@ -82,12 +79,12 @@ def parse_indo_date(tgl_str: str) -> date:
         "desember": 12,
     }
     try:
-        # Coba dd Month yyyy bahasa Inggris
+        # dd Month yyyy bhs Inggris
         return datetime.strptime(tgl_str, "%d %B %Y").date()
     except Exception:
         pass
 
-    # Coba dd NamaBulanID yyyy
+    # dd NamaBulanID yyyy
     parts = tgl_str.replace(",", " ").split()
     if len(parts) == 3:
         try:
@@ -99,14 +96,13 @@ def parse_indo_date(tgl_str: str) -> date:
         except Exception:
             pass
 
-    # Coba dd-mm-yyyy atau dd/mm/yyyy
+    # dd-mm-yyyy / dd/mm/yyyy
     for fmt in ("%d-%m-%Y", "%d/%m/%Y"):
         try:
             return datetime.strptime(tgl_str, fmt).date()
         except Exception:
             pass
 
-    # Fallback: hari ini
     return date.today()
 
 
@@ -220,8 +216,8 @@ def create_pdf(
                 ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
                 ("ALIGN", (0, 0), (-1, 0), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Qty
-                ("ALIGN", (3, 1), (-1, -1), "RIGHT"),  # Harga & Total
+                ("ALIGN", (0, 1), (0, -1), "CENTER"),
+                ("ALIGN", (3, 1), (-1, -1), "RIGHT"),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
             ]
         )
@@ -230,7 +226,7 @@ def create_pdf(
     story.append(table)
     story.append(Spacer(1, 0.4 * cm))
 
-    # Ringkasan harga (Sub Total, Diskon, PPN, Total)
+    # Ringkasan harga
     summary_data = []
 
     summary_data.append(
@@ -337,11 +333,10 @@ def create_pdf(
 #   STATE & CHAT-BASED INPUT
 # =============================
 st.markdown(
-    "<h1 style='text-align: center;'>Penawaran Harga (Mode Chat - Format Tabel)</h1>",
+    "<h1 style='text-align: center;'>Penawaran Harga (Paste Baris Excel)</h1>",
     unsafe_allow_html=True,
 )
 
-# Inisialisasi session_state
 if "parsed_data" not in st.session_state:
     st.session_state.parsed_data = {
         "nama_customer": "",
@@ -364,47 +359,24 @@ pic_options = {
     "Alamas Ramadhan": "0857 7376 2820",
 }
 
-st.write("Copy dari Excel baris penawaran dengan header seperti contoh di bawah:")
-
+st.write("Format setiap baris (tanpa header), dipisah TAB / langsung paste dari Excel:")
 st.code(
     "Tanggal\tNo. Surat\tRS\tBrand/Unit\tType\tSerial Number (SN)\tPN\tDescription\tQty (di Price List)\tMata Uang\tPrice (Mata Uang Asli)\tPrice (Rp)\n"
-    "18 November 2025\t1910\tRSPI Pondok Indah\tSLE\t6000\t6010360726\tN6656\tFlowSensor cable for use with flow sensors on the SLE4000, SLE5000 & SLE6000. Pack of 1\t1 Pc\tIDR\t-\t4.416.000",
+    "18 November 2025\t1912C\tdr. Belle Aesthetic Clinic - Pluit\tCynosure\tPicosure PRO\t-\t700-7051-900\tHVPS PICOSURE\t1 Pc\tIDR\t-\t294.512.000",
     language="text",
 )
 
 chat_input = st.text_area(
-    "Paste data (boleh lebih dari 1 baris, termasuk header):",
+    "Paste baris-barismu di sini:",
     height=200,
-    help="Paste langsung dari Excel. Pisah antar kolom dengan TAB (default Excel).",
+    help="Contoh: 1–5 baris seperti contoh di atas, langsung paste dari Excel.",
 )
 
-if st.button("💬 Proses Data Tabel"):
+if st.button("💬 Proses Baris"):
     lines = [l for l in chat_input.splitlines() if l.strip()]
-    if len(lines) < 2:
-        st.error("Minimal harus ada header + 1 baris data.")
+    if not lines:
+        st.error("Tidak ada baris yang terbaca.")
     else:
-        header = lines[0].split("\t")
-        rows = [l.split("\t") for l in lines[1:]]
-
-        # Normalisasi header ke index
-        def idx(col_name_candidates):
-            for name in header:
-                for c in col_name_candidates:
-                    if c.lower() in name.lower():
-                        return header.index(name)
-            return None
-
-        idx_tanggal = idx(["Tanggal"])
-        idx_no_surat = idx(["No. Surat", "No Surat", "No. Surat"])
-        idx_rs = idx(["RS", "Rumah Sakit"])
-        idx_brand = idx(["Brand/Unit", "Brand", "Unit"])
-        idx_type = idx(["Type", "Tipe"])
-        idx_sn = idx(["Serial Number", "SN"])
-        idx_pn = idx(["PN", "Part Number"])
-        idx_desc = idx(["Description", "Deskripsi"])
-        idx_qty = idx(["Qty (di Price List)", "Qty"])
-        idx_price_rp = idx(["Price (Rp)", "Price Rp"])
-
         items = []
         nama_customer = ""
         nomor_penawaran = ""
@@ -412,20 +384,27 @@ if st.button("💬 Proses Data Tabel"):
         brand = ""
         tipe = ""
         sn = ""
-        for r in rows:
-            # Ambil field per baris (aman jika index None)
-            tgl_str = r[idx_tanggal] if idx_tanggal is not None and idx_tanggal < len(r) else ""
-            no_surat = r[idx_no_surat] if idx_no_surat is not None and idx_no_surat < len(r) else ""
-            rs_name = r[idx_rs] if idx_rs is not None and idx_rs < len(r) else ""
-            brand_val = r[idx_brand] if idx_brand is not None and idx_brand < len(r) else ""
-            type_val = r[idx_type] if idx_type is not None and idx_type < len(r) else ""
-            sn_val = r[idx_sn] if idx_sn is not None and idx_sn < len(r) else ""
-            pn_val = r[idx_pn] if idx_pn is not None and idx_pn < len(r) else ""
-            desc_val = r[idx_desc] if idx_desc is not None and idx_desc < len(r) else ""
-            qty_val = r[idx_qty] if idx_qty is not None and idx_qty < len(r) else "1"
-            price_rp_val = r[idx_price_rp] if idx_price_rp is not None and idx_price_rp < len(r) else "0"
 
-            # set header-level info dari baris pertama
+        for line in lines:
+            cols = line.split("\t")
+            # Pastikan minimal 12 kolom sesuai format
+            if len(cols) < 12:
+                st.warning(f"Baris ini kolomnya kurang dari 12 dan di-skip:\n{line}")
+                continue
+
+            tgl_str = cols[0]
+            no_surat = cols[1]
+            rs_name = cols[2]
+            brand_val = cols[3]
+            type_val = cols[4]
+            sn_val = cols[5]
+            pn_val = cols[6]
+            desc_val = cols[7]
+            qty_val = cols[8]
+            # cols[9] Mata uang, cols[10] price asli (abaikan), cols[11] price Rp
+            price_rp_val = cols[11]
+
+            # header-level info dari baris pertama
             if not nama_customer:
                 nama_customer = rs_name
             if not nomor_penawaran:
@@ -445,8 +424,13 @@ if st.button("💬 Proses Data Tabel"):
             qty = parts_qty[0] if parts_qty else "1"
             uom = parts_qty[1] if len(parts_qty) > 1 else ""
 
-            # price per item (Rp)
-            price_str = price_rp_val.replace(".", "").replace(",", "").replace(" ", "").replace("-", "")
+            # price per item (Rp) – buang titik, koma, spasi, minus
+            price_str = (
+                price_rp_val.replace(".", "")
+                .replace(",", "")
+                .replace(" ", "")
+                .replace("-", "")
+            )
             try:
                 priceperitem = int(price_str) if price_str else 0
             except Exception:
@@ -477,7 +461,7 @@ if st.button("💬 Proses Data Tabel"):
 
         st.session_state.parsed_data = {
             "nama_customer": nama_customer,
-            "alamat": "",  # alamat bisa diisi manual
+            "alamat": "",
             "nomor_penawaran": nomor_penawaran,
             "tanggal": tgl_doc,
             "nama_unit": nama_unit,
@@ -489,14 +473,14 @@ if st.button("💬 Proses Data Tabel"):
             "pic": "Muhammad Lukmansyah",
         }
 
-        st.success("Data berhasil diproses dari format tabel.")
+        st.success("Baris berhasil diproses.")
 
 # =============================
 #  REVIEW & GENERATE DOKUMEN
 # =============================
 data = st.session_state.parsed_data
 
-st.markdown("### Data Penawaran (hasil dari tabel, bisa dikoreksi)")
+st.markdown("### Data Penawaran (hasil paste, bisa dikoreksi)")
 
 col_a, col_b = st.columns(2)
 with col_a:
@@ -630,7 +614,7 @@ if st.button("📥 Generate Dokumen Penawaran"):
     header = section.header
     header_para = header.paragraphs[0]
 
-    # Ganti path sesuai lokasi kop surat Anda
+    # Kop surat (ubah path sesuai file kamu, atau biarkan kosong)
     image_path = "/mnt/data/92e028fb-3499-479f-a167-62ec17940b2d.png"
     if os.path.exists(image_path):
         try:
@@ -650,7 +634,7 @@ if st.button("📥 Generate Dokumen Penawaran"):
         f"{deskripsi_item.replace(' ', '_')}.docx"
     )
 
-    # Konten dokumen Word
+    # Konten Word
     p = doc.add_paragraph()
     run = p.add_run("Kepada Yth: ")
     run.bold = True
@@ -711,7 +695,7 @@ if st.button("📥 Generate Dokumen Penawaran"):
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1
 
-    # Hitung diskon
+    # Diskon
     price_diskon = 0
     if diskon_option != "Tanpa diskon" and selected_items:
         if diskon_option == "Diskon persentase (%)":
@@ -785,12 +769,12 @@ if st.button("📥 Generate Dokumen Penawaran"):
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
-    # Save dokumen Word
+    # Save Word
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
 
-    # Create PDF (layout rapi)
+    # PDF
     pdf_buffer = create_pdf(
         nama_customer,
         alamat,
@@ -811,14 +795,12 @@ if st.button("📥 Generate Dokumen Penawaran"):
         price_diskon,
     )
 
-    # Preview
     preview_doc = Document(buffer)
     preview_text = "\n".join([para.text for para in preview_doc.paragraphs])
 
     st.markdown("### Preview Penawaran")
     st.text_area("Isi Penawaran", value=preview_text, height=400)
 
-    # Download buttons
     st.download_button(
         label="⬇️ Download Penawaran (Word)",
         data=buffer,
