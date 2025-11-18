@@ -36,18 +36,19 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Add header with bold text
+    # Header
     p.setFont("Helvetica-Bold", 12)
     p.drawString(100, height - 100, "Kepada Yth: ")
     p.setFont("Helvetica", 12)
     p.drawString(200, height - 100, nama_customer)
-    p.setFont("Helvetica", 12)
     p.drawString(100, height - 120, alamat)
     p.drawString(100, height - 140, f"Nomor Penawaran: {nomor_penawaran}")
     p.drawString(100, height - 160, f"Tanggal: {format_tanggal_indonesia(tanggal)}")
     p.drawString(100, height - 180, f"Unit: {nama_unit}")
 
-    p.drawString(100, height - 220, "Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item sebagai berikut:")
+    p.drawString(100, height - 220,
+                 "Terima kasih atas kesempatan yang telah diberikan kepada kami. "
+                 "Bersama ini kami mengajukan penawaran harga item sebagai berikut:")
 
     qty_x = 100
     partnumber_x = qty_x + 50
@@ -86,8 +87,26 @@ def create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items
     buffer.seek(0)
     return buffer
 
-# Streamlit UI
-st.markdown("<h1 style='text-align: center;'>Penawaran Harga</h1>", unsafe_allow_html=True)
+# =============================
+#   STATE & CHAT-BASED INPUT
+# =============================
+st.markdown("<h1 style='text-align: center;'>Penawaran Harga (Mode Chat)</h1>", unsafe_allow_html=True)
+
+# Inisialisasi session_state
+if "parsed_data" not in st.session_state:
+    st.session_state.parsed_data = {
+        "nama_customer": "",
+        "alamat": "",
+        "nomor_penawaran": "",
+        "tanggal": date.today(),
+        "nama_unit": "",
+        "items": [],
+        "diskon_option": "Tanpa diskon",
+        "diskon_value": 0,
+        "selected_items": [],
+        "ketersediaan": "Jangan tampilkan",
+        "pic": "Muhammad Lukmansyah"
+    }
 
 pic_options = {
     "Muhammad Lukmansyah": "0821 2291 1020",
@@ -96,53 +115,193 @@ pic_options = {
     "Alamas Ramadhan": "0857 7376 2820"
 }
 
-nama_customer = st.text_input("Nama Customer")
-alamat = st.text_area("Alamat Customer")
-nomor_penawaran = st.text_input("Nomor Penawaran")
-tanggal = st.date_input("Tanggal", value=date.today())
-nama_unit = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)")
+st.write("Tulis instruksi penawaran di bawah ini (seperti ngobrol):")
+st.code(
+"""Contoh:
+Buat penawaran untuk:
+Customer: RS Harapan Sejahtera
+Alamat: Jl. Merdeka No. 10, Jakarta
+Nomor penawaran: 023/PNW/RS-HS/2025
+Tanggal: 18-11-2025
+Unit: Ventilator XYZ SN12345
 
-st.markdown("<h3 style='text-align: center;'>Item yang ditawarkan</h3>", unsafe_allow_html=True)
-jumlah_item = st.number_input("Jumlah item yang ditawarkan", min_value=1, max_value=10, value=1, format="%d")
+Item:
+1) Qty 2 unit, Part Number VT-100, Description Ventilator tipe 100, Harga 45.000.000
+2) Qty 3 set, Part Number TS-01, Description Trolley Stand, Harga 5.000.000
 
-items = []
-for i in range(jumlah_item):
-    if jumlah_item > 1:
-        st.markdown(f"### Item {i+1}")
-        st.markdown("---")
+Diskon: 10% untuk semua item
+Ketersediaan: Ready stock
+PIC: Muhammad Lukmansyah
+""",
+    language="text",
+)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        qty = st.text_input("Qty", key=f"qty_{i}")
-    with col2:
-        uom = st.text_input("UOM", key=f"uom_{i}")
+chat_input = st.text_area("Chat Penawaran", height=250, help="Tulis detail penawaran secara bebas.")
 
-    partnumber = st.text_input("Part Number", key=f"part_{i}")
-    description = st.text_input("Description", key=f"desc_{i}")
-    priceperitem = st.number_input("Harga per item (Rp)", value=0, key=f"harga_{i}", format="%d")
+if st.button("💬 Proses Chat"):
+    import re
+    text = chat_input
 
-    try:
-        total = float(qty) * priceperitem if qty else 0.0
-    except:
-        total = 0.0
+    def get_after(label):
+        for line in text.splitlines():
+            if label.lower() in line.lower():
+                return line.split(":", 1)[-1].strip()
+        return ""
 
-    items.append({
-        "qty": qty,
-        "uom": uom,
-        "partnumber": partnumber,
-        "description": description,
-        "priceperitem": priceperitem,
-        "price": total
-    })
+    # Field dasar
+    nama_customer = get_after("Customer")
+    alamat = get_after("Alamat")
+    nomor_penawaran = get_after("Nomor penawaran")
+    unit = get_after("Unit")
+    tgl_str = get_after("Tanggal")
 
-st.markdown("---")
-st.markdown("<h3 style='text-align: center;'>Keterangan lain-lain</h3>", unsafe_allow_html=True)
+    # Tanggal dd-mm-yyyy atau dd/mm/yyyy
+    parsed_date = date.today()
+    if tgl_str:
+        match = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", tgl_str)
+        if match:
+            d, m, y = map(int, match.groups())
+            try:
+                parsed_date = date(y, m, d)
+            except:
+                parsed_date = date.today()
 
-diskon_option = st.radio("Jenis Diskon", ["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"])
+    # Diskon
+    diskon_option = "Tanpa diskon"
+    diskon_value = 0
+    selected_items = []
+
+    for line in text.splitlines():
+        if "diskon" in line.lower():
+            angka = re.findall(r"\d+", line)
+            if angka:
+                val = int(angka[0])
+                if "%" in line:
+                    diskon_option = "Diskon persentase (%)"
+                    diskon_value = val
+                else:
+                    diskon_option = "Diskon nominal (Rp)"
+                    diskon_value = val
+            if "semua" in line.lower():
+                selected_items = "semua"
+            break
+
+    # Ketersediaan
+    ketersediaan = "Jangan tampilkan"
+    for line in text.splitlines():
+        lower_line = line.lower()
+        if "ketersediaan" in lower_line or "ready stock" in lower_line or "indent" in lower_line:
+            if "ready stock" in lower_line:
+                ketersediaan = "Ready stock"
+            elif "indent" in lower_line:
+                ketersediaan = "Indent"
+            elif "persediaan masih ada" in lower_line:
+                ketersediaan = "Ready jika persediaan masih ada"
+            break
+
+    # PIC
+    pic = "Muhammad Lukmansyah"
+    for name in pic_options.keys():
+        if name.lower() in text.lower():
+            pic = name
+            break
+
+    # Item
+    items = []
+    for line in text.splitlines():
+        # 1) Qty 2 unit, Part Number VT-100, Description ..., Harga 45.000.000
+        if re.match(r"\s*\d+\)", line.strip()):
+            qty_match = re.search(r"qty\s+(\d+)", line, re.IGNORECASE)
+            uom_match = re.search(r"qty\s+\d+\s+(\w+)", line, re.IGNORECASE)
+            pn_match = re.search(r"part number\s*([A-Za-z0-9\-\_/]+)", line, re.IGNORECASE)
+            desc_match = re.search(r"description\s*(.*?),\s*harga", line, re.IGNORECASE)
+            harga_match = re.search(r"harga\s*([\d\.]+)", line, re.IGNORECASE)
+
+            qty = qty_match.group(1) if qty_match else "1"
+            uom = uom_match.group(1) if uom_match else ""
+            partnumber = pn_match.group(1) if pn_match else ""
+            description = desc_match.group(1) if desc_match else ""
+            priceperitem = 0
+            if harga_match:
+                h_str = harga_match.group(1).replace(".", "")
+                try:
+                    priceperitem = int(h_str)
+                except:
+                    priceperitem = 0
+
+            total = float(qty) * priceperitem
+            items.append({
+                "qty": qty,
+                "uom": uom,
+                "partnumber": partnumber,
+                "description": description,
+                "priceperitem": priceperitem,
+                "price": total
+            })
+
+    # Diskon utk semua item
+    if selected_items == "semua":
+        selected_items = list(range(len(items)))
+    elif isinstance(selected_items, str):
+        selected_items = []
+
+    # Simpan ke session_state
+    st.session_state.parsed_data = {
+        "nama_customer": nama_customer,
+        "alamat": alamat,
+        "nomor_penawaran": nomor_penawaran,
+        "tanggal": parsed_date,
+        "nama_unit": unit,
+        "items": items,
+        "diskon_option": diskon_option,
+        "diskon_value": diskon_value,
+        "selected_items": selected_items,
+        "ketersediaan": ketersediaan,
+        "pic": pic,
+    }
+
+    st.success("Chat berhasil diproses. Silakan cek dan koreksi data di bawah sebelum generate dokumen.")
+
+# =============================
+#  REVIEW & GENERATE DOKUMEN
+# =============================
+data = st.session_state.parsed_data
+
+st.markdown("### Data Penawaran (hasil dari chat, bisa dikoreksi)")
+
+col_a, col_b = st.columns(2)
+with col_a:
+    data["nama_customer"] = st.text_input("Nama Customer", value=data["nama_customer"])
+    data["alamat"] = st.text_area("Alamat Customer", value=data["alamat"])
+    data["nomor_penawaran"] = st.text_input("Nomor Penawaran", value=data["nomor_penawaran"])
+with col_b:
+    data["tanggal"] = st.date_input("Tanggal", value=data["tanggal"])
+    data["nama_unit"] = st.text_input("Nama Unit (Tipe dan Serial Number jika ada)", value=data["nama_unit"])
+
+st.markdown("#### Item yang ditawarkan")
+for i, item in enumerate(data["items"]):
+    st.write(f"**Item {i+1}**")
+    st.text(
+        f"Qty: {item['qty']} {item['uom']}\n"
+        f"Part Number: {item['partnumber']}\n"
+        f"Description: {item['description']}\n"
+        f"Harga per item: {format_rupiah(item['priceperitem'])}\n"
+        f"Total: {format_rupiah(item['price'])}"
+    )
+
+# Diskon
+st.markdown("#### Diskon")
+diskon_option = st.radio(
+    "Jenis Diskon",
+    ["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"],
+    index=["Tanpa diskon", "Diskon persentase (%)", "Diskon nominal (Rp)"].index(data["diskon_option"])
+)
 diskon_value = 0
 selected_items = []
 
-if diskon_option != "Tanpa diskon":
+jumlah_item = len(data["items"])
+
+if diskon_option != "Tanpa diskon" and jumlah_item > 0:
     if jumlah_item > 1:
         diskon_scope = st.radio("Diskon berlaku untuk:", ["Semua item", "Pilih item tertentu"], index=0)
         if diskon_scope == "Pilih item tertentu":
@@ -158,19 +317,50 @@ if diskon_option != "Tanpa diskon":
         selected_items = [0]
 
     if diskon_option == "Diskon persentase (%)":
-        diskon_value = st.number_input("Besar diskon (%)", min_value=0, max_value=100, value=0, format="%d")
+        diskon_value = st.number_input("Besar diskon (%)", min_value=0, max_value=100, value=data["diskon_value"], format="%d")
     else:
-        diskon_value = st.number_input("Besar diskon (Rp)", min_value=0, value=0, format="%d")
+        diskon_value = st.number_input("Besar diskon (Rp)", min_value=0, value=data["diskon_value"], format="%d")
+else:
+    diskon_value = 0
+    selected_items = []
 
+data["diskon_option"] = diskon_option
+data["diskon_value"] = diskon_value
+data["selected_items"] = selected_items
+
+# Ketersediaan & PIC
 opsi_ketersediaan = ["Jangan tampilkan", "Ready stock", "Ready jika persediaan masih ada", "Indent"]
-ketersediaan = st.selectbox("Ketersediaan Barang", opsi_ketersediaan)
-pic = st.selectbox("Nama PIC", list(pic_options.keys()))
-pic_telp = pic_options[pic]
+data["ketersediaan"] = st.selectbox(
+    "Ketersediaan Barang",
+    opsi_ketersediaan,
+    index=opsi_ketersediaan.index(data["ketersediaan"]) if data["ketersediaan"] in opsi_ketersediaan else 0
+)
+data["pic"] = st.selectbox(
+    "Nama PIC",
+    list(pic_options.keys()),
+    index=list(pic_options.keys()).index(data["pic"]) if data["pic"] in pic_options else 0
+)
+pic_telp = pic_options[data["pic"]]
 
-if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
+# =============================
+#  GENERATE DOKUMEN
+# =============================
+if st.button("📥 Generate Dokumen Penawaran"):
+    items = data["items"]
+    nama_customer = data["nama_customer"]
+    alamat = data["alamat"]
+    nomor_penawaran = data["nomor_penawaran"]
+    tanggal = data["tanggal"]
+    nama_unit = data["nama_unit"]
+    diskon_option = data["diskon_option"]
+    diskon_value = data["diskon_value"]
+    selected_items = data["selected_items"]
+    ketersediaan = data["ketersediaan"]
+    pic = data["pic"]
+
     doc = Document()
 
-    # Set default font to Calibri
+    # Default font
     style = doc.styles['Normal']
     font = style.font
     font.name = 'Calibri'
@@ -179,6 +369,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     header = section.header
     header_para = header.paragraphs[0]
 
+    # Ganti path sesuai lokasi kop surat Anda
     image_path = "/mnt/data/92e028fb-3499-479f-a167-62ec17940b2d.png"
     if os.path.exists(image_path):
         try:
@@ -186,9 +377,10 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         except Exception as e:
             st.warning(f"Gagal menambahkan kop surat: {e}")
 
-    # Generate nama file
     deskripsi_item = items[0]['description'][:30].replace("/", "-") if items and items[0]['description'] else "Penawaran"
-    nama_file = f"{nomor_penawaran}_{nama_customer.replace(' ', '_')}-{nama_unit.replace(' ', '_')}_{deskripsi_item.replace(' ', '_')}.docx"
+    safe_customer = (nama_customer or "Customer").replace(" ", "_")
+    safe_unit = (nama_unit or "Unit").replace(" ", "_")
+    nama_file = f"{nomor_penawaran}_{safe_customer}-{safe_unit}_{deskripsi_item.replace(' ', '_')}.docx"
     
     # Konten dokumen
     p = doc.add_paragraph()
@@ -212,11 +404,14 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     run.add_tab()
     run.add_tab()
     run.add_text(f"Jakarta, {format_tanggal_indonesia(tanggal)}")
-
     p.paragraph_format.space_after = Pt(0)
 
     doc.add_paragraph()
-    p = doc.add_paragraph(f"Terima kasih atas kesempatan yang telah diberikan kepada kami. Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} di {nama_customer}, sebagai berikut:\n")
+    p = doc.add_paragraph(
+        f"Terima kasih atas kesempatan yang telah diberikan kepada kami. "
+        f"Bersama ini kami mengajukan penawaran harga item untuk unit {nama_unit} "
+        f"di {nama_customer}, sebagai berikut:\n"
+    )
     p.paragraph_format.space_after = Pt(0)
     p.paragraph_format.space_before = Pt(0)
 
@@ -248,6 +443,7 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
         for cell in row_cells:
             cell.paragraphs[0].alignment = 1
 
+    # Hitung diskon
     price_diskon = 0
     if diskon_option != "Tanpa diskon" and selected_items:
         if diskon_option == "Diskon persentase (%)":
@@ -255,8 +451,9 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
                 price_diskon += items[i]['price'] * (diskon_value / 100)
         else:
             total_terdiskon = sum(items[i]['price'] for i in selected_items)
-            for i in selected_items:
-                price_diskon += (items[i]['price'] / total_terdiskon) * diskon_value
+            if total_terdiskon > 0:
+                for i in selected_items:
+                    price_diskon += (items[i]['price'] / total_terdiskon) * diskon_value
         price_diskon = round(price_diskon)
 
     subtotal2 = subtotal1 - price_diskon
@@ -282,7 +479,12 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
             cell.paragraphs[0].alignment = 1
             cell.paragraphs[0].paragraph_format.space_after = Pt(0)
 
-    for text in ["\nSyarat dan ketentuan:", "Harga                               : Sudah termasuk PPN 11%", "Pembayaran                   : Tunai atau transfer", "Masa berlaku                 : 2 minggu"]:
+    for text in [
+        "\nSyarat dan ketentuan:",
+        "Harga                               : Sudah termasuk PPN 11%",
+        "Pembayaran                   : Tunai atau transfer",
+        "Masa berlaku                 : 2 minggu"
+    ]:
         p = doc.add_paragraph(text)
         p.paragraph_format.space_after = Pt(0)
 
@@ -308,7 +510,17 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
     buffer.seek(0)
 
     # Create PDF
-    pdf_buffer = create_pdf(nama_customer, alamat, nomor_penawaran, tanggal, nama_unit, items, ketersediaan, pic, pic_telp)
+    pdf_buffer = create_pdf(
+        nama_customer,
+        alamat,
+        nomor_penawaran,
+        tanggal,
+        nama_unit,
+        items,
+        ketersediaan,
+        pic,
+        pic_telp
+    )
 
     # Preview
     preview_doc = Document(buffer)
@@ -319,16 +531,15 @@ if st.button("\U0001F4E5 Generate Dokumen Penawaran"):
 
     # Download buttons
     st.download_button(
-        label="\u2B07\uFE0F Download Penawaran (Word)",
+        label="⬇️ Download Penawaran (Word)",
         data=buffer,
         file_name=nama_file,
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
     st.download_button(
-        label="\u2B07\uFE0F Download Penawaran (PDF)",
+        label="⬇️ Download Penawaran (PDF)",
         data=pdf_buffer,
         file_name=nama_file.replace(".docx", ".pdf"),
         mime="application/pdf"
     )
-
