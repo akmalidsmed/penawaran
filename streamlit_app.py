@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import date
+from datetime import datetime, date
 import io
 from docx import Document
 from docx.shared import Inches, Pt
@@ -7,8 +7,6 @@ import os
 
 # Try to import reportlab with fallback installation
 try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import (
@@ -25,8 +23,6 @@ except ImportError:
     import sys
 
     subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import (
@@ -63,6 +59,55 @@ def format_tanggal_indonesia(tanggal):
     bulan = bulan_dict[tanggal.strftime("%B")]
     tahun = tanggal.year
     return f"{hari} {bulan} {tahun}"
+
+
+def parse_indo_date(tgl_str: str) -> date:
+    """
+    Mencoba parse '18 November 2025' atau '18-11-2025', '18/11/2025'
+    """
+    tgl_str = tgl_str.strip()
+    # Coba format dd Month yyyy (Indonesia/Inggris)
+    bulan_id = {
+        "januari": 1,
+        "februari": 2,
+        "maret": 3,
+        "april": 4,
+        "mei": 5,
+        "juni": 6,
+        "juli": 7,
+        "agustus": 8,
+        "september": 9,
+        "oktober": 10,
+        "november": 11,
+        "desember": 12,
+    }
+    try:
+        # Coba dd Month yyyy bahasa Inggris
+        return datetime.strptime(tgl_str, "%d %B %Y").date()
+    except Exception:
+        pass
+
+    # Coba dd NamaBulanID yyyy
+    parts = tgl_str.replace(",", " ").split()
+    if len(parts) == 3:
+        try:
+            d = int(parts[0])
+            m = bulan_id.get(parts[1].lower())
+            y = int(parts[2])
+            if m:
+                return date(y, m, d)
+        except Exception:
+            pass
+
+    # Coba dd-mm-yyyy atau dd/mm/yyyy
+    for fmt in ("%d-%m-%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(tgl_str, fmt).date()
+        except Exception:
+            pass
+
+    # Fallback: hari ini
+    return date.today()
 
 
 def create_pdf(
@@ -292,7 +337,7 @@ def create_pdf(
 #   STATE & CHAT-BASED INPUT
 # =============================
 st.markdown(
-    "<h1 style='text-align: center;'>Penawaran Harga (Mode Chat)</h1>",
+    "<h1 style='text-align: center;'>Penawaran Harga (Mode Chat - Format Tabel)</h1>",
     unsafe_allow_html=True,
 )
 
@@ -319,179 +364,144 @@ pic_options = {
     "Alamas Ramadhan": "0857 7376 2820",
 }
 
-st.write("Tulis instruksi penawaran di bawah ini (seperti ngobrol):")
+st.write("Copy dari Excel baris penawaran dengan header seperti contoh di bawah:")
+
 st.code(
-    """Contoh:
-Buat penawaran untuk:
-Customer: RS Harapan Sejahtera
-Alamat: Jl. Merdeka No. 10, Jakarta
-Nomor penawaran: 023/PNW/RS-HS/2025
-Tanggal: 18-11-2025
-Unit: Ventilator XYZ SN12345
-
-Item:
-1) Qty 2 unit, Part Number VT-100, Description Ventilator tipe 100, Harga 45.000.000
-2) Qty 3 set, Part Number TS-01, Description Trolley Stand, Harga 5.000.000
-
-Diskon: 10% untuk semua item
-Ketersediaan: Ready stock
-PIC: Muhammad Lukmansyah
-""",
+    "Tanggal\tNo. Surat\tRS\tBrand/Unit\tType\tSerial Number (SN)\tPN\tDescription\tQty (di Price List)\tMata Uang\tPrice (Mata Uang Asli)\tPrice (Rp)\n"
+    "18 November 2025\t1910\tRSPI Pondok Indah\tSLE\t6000\t6010360726\tN6656\tFlowSensor cable for use with flow sensors on the SLE4000, SLE5000 & SLE6000. Pack of 1\t1 Pc\tIDR\t-\t4.416.000",
     language="text",
 )
 
 chat_input = st.text_area(
-    "Chat Penawaran", height=250, help="Tulis detail penawaran secara bebas."
+    "Paste data (boleh lebih dari 1 baris, termasuk header):",
+    height=200,
+    help="Paste langsung dari Excel. Pisah antar kolom dengan TAB (default Excel).",
 )
 
-if st.button("💬 Proses Chat"):
-    import re
+if st.button("💬 Proses Data Tabel"):
+    lines = [l for l in chat_input.splitlines() if l.strip()]
+    if len(lines) < 2:
+        st.error("Minimal harus ada header + 1 baris data.")
+    else:
+        header = lines[0].split("\t")
+        rows = [l.split("\t") for l in lines[1:]]
 
-    text = chat_input
+        # Normalisasi header ke index
+        def idx(col_name_candidates):
+            for name in header:
+                for c in col_name_candidates:
+                    if c.lower() in name.lower():
+                        return header.index(name)
+            return None
 
-    def get_after(label):
-        for line in text.splitlines():
-            if label.lower() in line.lower():
-                return line.split(":", 1)[-1].strip()
-        return ""
+        idx_tanggal = idx(["Tanggal"])
+        idx_no_surat = idx(["No. Surat", "No Surat", "No. Surat"])
+        idx_rs = idx(["RS", "Rumah Sakit"])
+        idx_brand = idx(["Brand/Unit", "Brand", "Unit"])
+        idx_type = idx(["Type", "Tipe"])
+        idx_sn = idx(["Serial Number", "SN"])
+        idx_pn = idx(["PN", "Part Number"])
+        idx_desc = idx(["Description", "Deskripsi"])
+        idx_qty = idx(["Qty (di Price List)", "Qty"])
+        idx_price_rp = idx(["Price (Rp)", "Price Rp"])
 
-    # Field dasar
-    nama_customer = get_after("Customer")
-    alamat = get_after("Alamat")
-    nomor_penawaran = get_after("Nomor penawaran")
-    unit = get_after("Unit")
-    tgl_str = get_after("Tanggal")
+        items = []
+        nama_customer = ""
+        nomor_penawaran = ""
+        tgl_doc = date.today()
+        brand = ""
+        tipe = ""
+        sn = ""
+        for r in rows:
+            # Ambil field per baris (aman jika index None)
+            tgl_str = r[idx_tanggal] if idx_tanggal is not None and idx_tanggal < len(r) else ""
+            no_surat = r[idx_no_surat] if idx_no_surat is not None and idx_no_surat < len(r) else ""
+            rs_name = r[idx_rs] if idx_rs is not None and idx_rs < len(r) else ""
+            brand_val = r[idx_brand] if idx_brand is not None and idx_brand < len(r) else ""
+            type_val = r[idx_type] if idx_type is not None and idx_type < len(r) else ""
+            sn_val = r[idx_sn] if idx_sn is not None and idx_sn < len(r) else ""
+            pn_val = r[idx_pn] if idx_pn is not None and idx_pn < len(r) else ""
+            desc_val = r[idx_desc] if idx_desc is not None and idx_desc < len(r) else ""
+            qty_val = r[idx_qty] if idx_qty is not None and idx_qty < len(r) else "1"
+            price_rp_val = r[idx_price_rp] if idx_price_rp is not None and idx_price_rp < len(r) else "0"
 
-    # Tanggal dd-mm-yyyy atau dd/mm/yyyy
-    parsed_date = date.today()
-    if tgl_str:
-        match = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", tgl_str)
-        if match:
-            d, m, y = map(int, match.groups())
+            # set header-level info dari baris pertama
+            if not nama_customer:
+                nama_customer = rs_name
+            if not nomor_penawaran:
+                nomor_penawaran = no_surat
+            if tgl_str and tgl_doc == date.today():
+                tgl_doc = parse_indo_date(tgl_str)
+            if not brand:
+                brand = brand_val
+            if not tipe:
+                tipe = type_val
+            if not sn:
+                sn = sn_val
+
+            # qty & uom
+            qty_str = qty_val.strip()
+            parts_qty = qty_str.split()
+            qty = parts_qty[0] if parts_qty else "1"
+            uom = parts_qty[1] if len(parts_qty) > 1 else ""
+
+            # price per item (Rp)
+            price_str = price_rp_val.replace(".", "").replace(",", "").replace(" ", "").replace("-", "")
             try:
-                parsed_date = date(y, m, d)
+                priceperitem = int(price_str) if price_str else 0
             except Exception:
-                parsed_date = date.today()
+                priceperitem = 0
 
-    # Diskon
-    diskon_option = "Tanpa diskon"
-    diskon_value = 0
-    selected_items = []
+            try:
+                q = float(qty)
+            except Exception:
+                q = 1.0
+            total = q * priceperitem
 
-    for line in text.splitlines():
-        if "diskon" in line.lower():
-            angka = re.findall(r"\d+", line)
-            if angka:
-                val = int(angka[0])
-                if "%" in line:
-                    diskon_option = "Diskon persentase (%)"
-                    diskon_value = val
-                else:
-                    diskon_option = "Diskon nominal (Rp)"
-                    diskon_value = val
-            if "semua" in line.lower():
-                selected_items = "semua"
-            break
-
-    # Ketersediaan
-    ketersediaan = "Jangan tampilkan"
-    for line in text.splitlines():
-        lower_line = line.lower()
-        if (
-            "ketersediaan" in lower_line
-            or "ready stock" in lower_line
-            or "indent" in lower_line
-        ):
-            if "ready stock" in lower_line:
-                ketersediaan = "Ready stock"
-            elif "indent" in lower_line:
-                ketersediaan = "Indent"
-            elif "persediaan masih ada" in lower_line:
-                ketersediaan = "Ready jika persediaan masih ada"
-            break
-
-    # PIC
-    pic = "Muhammad Lukmansyah"
-    for name in pic_options.keys():
-        if name.lower() in text.lower():
-            pic = name
-            break
-
-    # Item
-    items = []
-    for line in text.splitlines():
-        # 1) Qty 2 unit, Part Number VT-100, Description ..., Harga 45.000.000
-        if re.match(r"\s*\d+\)", line.strip()):
-            qty_match = re.search(r"qty\s+(\d+)", line, re.IGNORECASE)
-            uom_match = re.search(r"qty\s+\d+\s+(\w+)", line, re.IGNORECASE)
-            pn_match = re.search(
-                r"part number\s*([A-Za-z0-9\-\_/]+)", line, re.IGNORECASE
-            )
-            desc_match = re.search(
-                r"description\s*(.*?),\s*harga", line, re.IGNORECASE
-            )
-            harga_match = re.search(r"harga\s*([\d\.]+)", line, re.IGNORECASE)
-
-            qty = qty_match.group(1) if qty_match else "1"
-            uom = uom_match.group(1) if uom_match else ""
-            partnumber = pn_match.group(1) if pn_match else ""
-            description = desc_match.group(1) if desc_match else ""
-            priceperitem = 0
-            if harga_match:
-                h_str = harga_match.group(1).replace(".", "")
-                try:
-                    priceperitem = int(h_str)
-                except Exception:
-                    priceperitem = 0
-
-            total = float(qty) * priceperitem
             items.append(
                 {
                     "qty": qty,
                     "uom": uom,
-                    "partnumber": partnumber,
-                    "description": description,
+                    "partnumber": pn_val,
+                    "description": desc_val,
                     "priceperitem": priceperitem,
                     "price": total,
                 }
             )
 
-    # Diskon utk semua item
-    if selected_items == "semua":
-        selected_items = list(range(len(items)))
-    elif isinstance(selected_items, str):
-        selected_items = []
+        nama_unit = ""
+        if brand or tipe or sn:
+            nama_unit = f"{brand} {tipe}".strip()
+            if sn:
+                nama_unit += f" SN {sn}"
 
-    # Simpan ke session_state
-    st.session_state.parsed_data = {
-        "nama_customer": nama_customer,
-        "alamat": alamat,
-        "nomor_penawaran": nomor_penawaran,
-        "tanggal": parsed_date,
-        "nama_unit": unit,
-        "items": items,
-        "diskon_option": diskon_option,
-        "diskon_value": diskon_value,
-        "selected_items": selected_items,
-        "ketersediaan": ketersediaan,
-        "pic": pic,
-    }
+        st.session_state.parsed_data = {
+            "nama_customer": nama_customer,
+            "alamat": "",  # alamat bisa diisi manual
+            "nomor_penawaran": nomor_penawaran,
+            "tanggal": tgl_doc,
+            "nama_unit": nama_unit,
+            "items": items,
+            "diskon_option": "Tanpa diskon",
+            "diskon_value": 0,
+            "selected_items": [],
+            "ketersediaan": "Jangan tampilkan",
+            "pic": "Muhammad Lukmansyah",
+        }
 
-    st.success(
-        "Chat berhasil diproses. Silakan cek dan koreksi data di bawah sebelum generate dokumen."
-    )
+        st.success("Data berhasil diproses dari format tabel.")
 
 # =============================
 #  REVIEW & GENERATE DOKUMEN
 # =============================
 data = st.session_state.parsed_data
 
-st.markdown("### Data Penawaran (hasil dari chat, bisa dikoreksi)")
+st.markdown("### Data Penawaran (hasil dari tabel, bisa dikoreksi)")
 
 col_a, col_b = st.columns(2)
 with col_a:
     data["nama_customer"] = st.text_input(
-        "Nama Customer", value=data["nama_customer"]
+        "Nama Customer (RS)", value=data["nama_customer"]
     )
     data["alamat"] = st.text_area("Alamat Customer", value=data["alamat"])
     data["nomor_penawaran"] = st.text_input(
@@ -500,7 +510,7 @@ with col_a:
 with col_b:
     data["tanggal"] = st.date_input("Tanggal", value=data["tanggal"])
     data["nama_unit"] = st.text_input(
-        "Nama Unit (Tipe dan Serial Number jika ada)", value=data["nama_unit"]
+        "Nama Unit (Brand/Type/SN)", value=data["nama_unit"]
     )
 
 st.markdown("#### Item yang ditawarkan")
@@ -640,7 +650,7 @@ if st.button("📥 Generate Dokumen Penawaran"):
         f"{deskripsi_item.replace(' ', '_')}.docx"
     )
 
-    # Konten dokumen
+    # Konten dokumen Word
     p = doc.add_paragraph()
     run = p.add_run("Kepada Yth: ")
     run.bold = True
@@ -780,7 +790,7 @@ if st.button("📥 Generate Dokumen Penawaran"):
     doc.save(buffer)
     buffer.seek(0)
 
-    # Create PDF (pakai layout rapi)
+    # Create PDF (layout rapi)
     pdf_buffer = create_pdf(
         nama_customer,
         alamat,
@@ -817,8 +827,3 @@ if st.button("📥 Generate Dokumen Penawaran"):
     )
 
     st.download_button(
-        label="⬇️ Download Penawaran (PDF)",
-        data=pdf_buffer,
-        file_name=nama_file.replace(".docx", ".pdf"),
-        mime="application/pdf",
-    )
